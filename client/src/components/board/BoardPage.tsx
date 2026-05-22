@@ -112,7 +112,7 @@ export function BoardPage() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col h-full bg-background animate-in fade-in-0 duration-150">
       {error && (
         <div className="fixed top-4 right-4 z-50 bg-destructive text-destructive-foreground text-sm px-4 py-2 rounded-md shadow-md flex items-center gap-3">
           {error}

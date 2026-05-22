@@ -93,7 +93,7 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col h-full bg-background animate-in fade-in-0 duration-150">
       <header className="sticky top-0 z-20 bg-background/90 backdrop-blur border-b border-border px-6 py-3">
         <h1 className="text-lg font-semibold">设置</h1>
       </header>
@@ -129,6 +129,32 @@ export function SettingsPage() {
           </div>
           <p className="text-xs text-muted-foreground mt-2">
             设置已自动保存到本地，下次启动生效。
+          </p>
+        </section>
+
+        {/* Keyboard shortcuts reference */}
+        <section className="mb-8">
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+            键盘快捷键
+          </h2>
+          <div className="bg-background border border-border rounded-lg px-4 divide-y divide-border">
+            {[
+              { key: 'B', label: '看板' },
+              { key: 'C', label: '日历' },
+              { key: 'P', label: '项目' },
+              { key: 'S', label: '设置' },
+              { key: 'Esc', label: '关闭任务详情' },
+            ].map(({ key, label }) => (
+              <div key={key} className="flex items-center justify-between py-2.5">
+                <span className="text-sm">{label}</span>
+                <kbd className="text-xs font-mono bg-muted border border-border rounded px-2 py-0.5">
+                  {key}
+                </kbd>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            快捷键在输入框获得焦点时不生效。
           </p>
         </section>
 

@@ -5,6 +5,50 @@ import { useSettingsStore } from './settingsStore';
 
 type TimerStatus = 'idle' | 'running';
 
+// sessionStorage key for persisting active pomodoro across page refreshes
+const SESSION_KEY = 'gtd-pomodoro-session';
+
+interface PersistedSession {
+  pomId: string;
+  taskId: string;
+  taskTitle: string;
+  durationSeconds: number;
+  startedAt: number; // ms timestamp when timer started
+}
+
+function saveSession(s: PersistedSession) {
+  try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(s)); } catch { /* ignore */ }
+}
+
+function clearSession() {
+  try { sessionStorage.removeItem(SESSION_KEY); } catch { /* ignore */ }
+}
+
+/** On page load, restore running state from sessionStorage if timer is still live. */
+function readSession(): Partial<PomodoroState> {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if (!raw) return {};
+    const s = JSON.parse(raw) as PersistedSession;
+    const elapsed = Math.floor((Date.now() - s.startedAt) / 1000);
+    const secondsLeft = Math.max(0, s.durationSeconds - elapsed);
+    if (secondsLeft <= 0) {
+      clearSession();
+      return {};
+    }
+    return {
+      pomId: s.pomId,
+      taskId: s.taskId,
+      taskTitle: s.taskTitle,
+      durationSeconds: s.durationSeconds,
+      secondsLeft,
+      status: 'running',
+    };
+  } catch {
+    return {};
+  }
+}
+
 interface PomodoroState {
   pomId: string | null;
   taskId: string | null;
@@ -21,6 +65,8 @@ interface PomodoroState {
   clearError: () => void;
 }
 
+const restored = readSession();
+
 export const usePomodoroStore = create<PomodoroState>((set, get) => ({
   pomId: null,
   taskId: null,
@@ -29,6 +75,8 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
   secondsLeft: 1500,
   status: 'idle',
   error: null,
+  // Spread restored sessionStorage state (overrides defaults if active session found)
+  ...restored,
 
   start: async (taskId, taskTitle, durationSeconds?) => {
     durationSeconds ??= useSettingsStore.getState().pomodoroDuration;
@@ -36,6 +84,8 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
     if (pomId) await get().interrupt();
     try {
       const pom = await api.startPomodoro(taskId, durationSeconds);
+      const startedAt = Date.now();
+      saveSession({ pomId: pom.id, taskId, taskTitle, durationSeconds, startedAt });
       set({
         pomId: pom.id,
         taskId,
@@ -53,6 +103,7 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
   complete: async () => {
     const { pomId } = get();
     if (!pomId) return;
+    clearSession();
     set({ status: 'idle', pomId: null, taskId: null, taskTitle: '' });
     try {
       await api.completePomodoro(pomId);
@@ -65,6 +116,7 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
   interrupt: async () => {
     const { pomId } = get();
     if (!pomId) return;
+    clearSession();
     set({ status: 'idle', pomId: null, taskId: null, taskTitle: '' });
     try {
       await api.interruptPomodoro(pomId);
