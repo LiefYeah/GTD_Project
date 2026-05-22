@@ -12,9 +12,10 @@ interface Props {
   projects: Project[];
   onTaskClick: (task: Task) => void;
   onAddTask: (title: string, status: TaskStatus) => void;
+  onStartPomodoro: (task: Task) => void;
 }
 
-export function KanbanColumn({ status, tasks, projects, onTaskClick, onAddTask }: Props) {
+export function KanbanColumn({ status, tasks, projects, onTaskClick, onAddTask, onStartPomodoro }: Props) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
   const meta = COLUMN_META[status];
   const projectMap = Object.fromEntries(projects.map((p) => [p.id, p]));
@@ -47,6 +48,7 @@ export function KanbanColumn({ status, tasks, projects, onTaskClick, onAddTask }
               task={task}
               project={task.projectId ? projectMap[task.projectId] : undefined}
               onClick={() => onTaskClick(task)}
+              onStartPomodoro={() => onStartPomodoro(task)}
             />
           ))}
         </div>

@@ -31,6 +31,16 @@ export interface Task {
 
 export const COLUMN_IDS: TaskStatus[] = ['planned', 'in_progress', 'on_hold', 'done'];
 
+export interface Pomodoro {
+  id: string;
+  taskId: string;
+  startedAt: number;
+  endedAt: number | null;
+  durationSeconds: number;
+  status: 'running' | 'completed' | 'interrupted';
+  notes: string | null;
+}
+
 export const COLUMN_META: Record<TaskStatus, { label: string; icon: string }> = {
   planned: { label: '计划', icon: '📋' },
   in_progress: { label: '进行中', icon: '🔥' },

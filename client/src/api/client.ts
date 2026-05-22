@@ -1,4 +1,4 @@
-import type { Task, Project } from '../types';
+import type { Task, Project, Pomodoro } from '../types';
 
 const BASE = '/api';
 
@@ -53,3 +53,24 @@ export const updateTask = (
 
 export const deleteTask = (id: string) =>
   req<{ success: boolean }>(`/tasks/${id}`, { method: 'DELETE' });
+
+export const startPomodoro = (taskId: string, durationSeconds = 1500) =>
+  req<Pomodoro>('/pomodoros', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ task_id: taskId, duration_seconds: durationSeconds }),
+  });
+
+export const completePomodoro = (id: string, notes?: string) =>
+  req<Pomodoro>(`/pomodoros/${id}/complete`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ notes }),
+  });
+
+export const interruptPomodoro = (id: string, notes?: string) =>
+  req<Pomodoro>(`/pomodoros/${id}/interrupt`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ notes }),
+  });

@@ -10,6 +10,7 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import { useBoardStore } from '../../store/boardStore';
+import { usePomodoroStore } from '../../store/pomodoroStore';
 import { KanbanColumn } from './KanbanColumn';
 import { TaskCard } from './TaskCard';
 import { TaskDrawer } from './TaskDrawer';
@@ -36,6 +37,8 @@ export function BoardPage() {
     tasks, projects, projectFilter, selectedTask, isLoading, error,
     load, setProjectFilter, setSelectedTask, patchTask, addTask, moveTask, removeTask, clearError,
   } = useBoardStore();
+
+  const pomodoroStart = usePomodoroStore((s) => s.start);
 
   const [activeTask, setActiveTask] = useState<Task | null>(null);
 
@@ -135,7 +138,8 @@ export function BoardPage() {
         </select>
       </header>
 
-      <div className="flex-1 overflow-x-auto">
+      {/* pb-16 reserves space so PomodoroBar never covers bottom cards */}
+      <div className="flex-1 overflow-x-auto pb-16">
         <div className="inline-flex gap-4 p-6 min-h-full">
           <DndContext
             sensors={sensors}
@@ -151,6 +155,7 @@ export function BoardPage() {
                 projects={projects}
                 onTaskClick={(task) => setSelectedTask(task)}
                 onAddTask={(title, s) => addTask(title, s, projectFilter ?? undefined)}
+                onStartPomodoro={(task) => pomodoroStart(task.id, task.title)}
               />
             ))}
 

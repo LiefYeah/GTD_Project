@@ -8,6 +8,7 @@ interface Props {
   task: Task;
   project?: Project;
   onClick: () => void;
+  onStartPomodoro?: () => void;
   isDragOverlay?: boolean;
 }
 
@@ -41,7 +42,7 @@ function DueDateBadge({ dueDate }: { dueDate: number }) {
   );
 }
 
-export function TaskCard({ task, project, onClick, isDragOverlay = false }: Props) {
+export function TaskCard({ task, project, onClick, onStartPomodoro, isDragOverlay = false }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
   });
@@ -66,7 +67,7 @@ export function TaskCard({ task, project, onClick, isDragOverlay = false }: Prop
         onClick();
       }}
       className={cn(
-        'bg-background rounded-md border p-3 cursor-pointer select-none',
+        'relative group bg-background rounded-md border p-3 cursor-pointer select-none',
         'hover:border-muted-foreground/40 transition-colors duration-150',
         'border-l-2',
         isOverdue && 'border-l-red-500',
@@ -84,6 +85,16 @@ export function TaskCard({ task, project, onClick, isDragOverlay = false }: Prop
           />
         )}
         <span className="text-sm font-medium leading-snug line-clamp-2 flex-1">{task.title}</span>
+        {onStartPomodoro && (
+          <button
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); onStartPomodoro(); }}
+            title="开始番茄"
+            className="flex-shrink-0 opacity-0 group-hover:opacity-100 text-base leading-none p-0.5 rounded hover:bg-muted transition-opacity"
+          >
+            🍅
+          </button>
+        )}
       </div>
 
       {(task.completedPomodoros > 0 || task.estimatedPomodoros || task.dueDate) && (
