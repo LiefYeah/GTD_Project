@@ -54,11 +54,11 @@ export const updateTask = (
 export const deleteTask = (id: string) =>
   req<{ success: boolean }>(`/tasks/${id}`, { method: 'DELETE' });
 
-export const startPomodoro = (taskId: string, durationSeconds = 1500) =>
+export const startPomodoro = (taskId: string | null, durationSeconds = 1500) =>
   req<Pomodoro>('/pomodoros', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ task_id: taskId, duration_seconds: durationSeconds }),
+    body: JSON.stringify({ task_id: taskId ?? null, duration_seconds: durationSeconds }),
   });
 
 export const completePomodoro = (id: string, notes?: string) =>

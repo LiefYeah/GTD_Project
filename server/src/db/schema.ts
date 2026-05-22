@@ -34,7 +34,6 @@ export const tasks = sqliteTable('tasks', {
 export const pomodoros = sqliteTable('pomodoros', {
   id: text('id').primaryKey(),
   taskId: text('task_id')
-    .notNull()
     .references(() => tasks.id),
   startedAt: integer('started_at').notNull(),
   endedAt: integer('ended_at'),

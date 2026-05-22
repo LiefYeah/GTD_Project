@@ -1,6 +1,7 @@
 import { sqlite } from '../lib/db';
 
 export function runMigrations(): void {
+  // ── Initial table creation ─────────────────────────────────────────────────
   sqlite.exec(`
     CREATE TABLE IF NOT EXISTS projects (
       id          TEXT    PRIMARY KEY,
@@ -33,7 +34,7 @@ export function runMigrations(): void {
 
     CREATE TABLE IF NOT EXISTS pomodoros (
       id               TEXT    PRIMARY KEY,
-      task_id          TEXT    NOT NULL REFERENCES tasks(id),
+      task_id          TEXT    REFERENCES tasks(id),
       started_at       INTEGER NOT NULL,
       ended_at         INTEGER,
       duration_seconds INTEGER,
@@ -41,6 +42,31 @@ export function runMigrations(): void {
       notes            TEXT
     );
   `);
+
+  // ── Migration M001: make pomodoros.task_id nullable ───────────────────────
+  // SQLite does not support DROP NOT NULL directly; we must recreate the table.
+  type ColInfo = { cid: number; name: string; type: string; notnull: number; dflt_value: unknown; pk: number };
+  const cols = sqlite.prepare('PRAGMA table_info(pomodoros)').all() as ColInfo[];
+  const taskIdCol = cols.find((c) => c.name === 'task_id');
+  if (taskIdCol && taskIdCol.notnull === 1) {
+    sqlite.exec(`
+      ALTER TABLE pomodoros RENAME TO pomodoros_m001_old;
+
+      CREATE TABLE pomodoros (
+        id               TEXT    PRIMARY KEY,
+        task_id          TEXT    REFERENCES tasks(id),
+        started_at       INTEGER NOT NULL,
+        ended_at         INTEGER,
+        duration_seconds INTEGER,
+        status           TEXT    NOT NULL,
+        notes            TEXT
+      );
+
+      INSERT INTO pomodoros SELECT * FROM pomodoros_m001_old;
+      DROP TABLE pomodoros_m001_old;
+    `);
+    console.log('[db] M001: pomodoros.task_id is now nullable');
+  }
 
   console.log('[db] migrations OK');
 }

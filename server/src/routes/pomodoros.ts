@@ -37,16 +37,17 @@ router.get('/', (req, res, next) => {
 router.post('/', (req, res, next) => {
   try {
     const { task_id, duration_seconds = 1500 } = req.body as {
-      task_id?: string; duration_seconds?: number;
+      task_id?: string | null; duration_seconds?: number;
     };
-    if (!task_id) {
-      return res.status(400).json({ error: { code: 'VALIDATION', message: 'task_id is required' } });
-    }
+    // task_id is now optional — null means a free (no-task) pomodoro
     const [pom] = db
       .insert(pomodoros)
       .values({
-        id: randomUUID(), taskId: task_id, startedAt: Date.now(),
-        durationSeconds: duration_seconds, status: 'running',
+        id: randomUUID(),
+        taskId: task_id ?? null,
+        startedAt: Date.now(),
+        durationSeconds: duration_seconds,
+        status: 'running',
       })
       .returning()
       .all();
@@ -68,14 +69,16 @@ router.patch('/:id/complete', (req, res, next) => {
     const now = Date.now();
     const actualDuration = Math.round((now - pom.startedAt) / 1000);
 
-    // Atomic: mark pomodoro completed AND increment task's completed_pomodoros counter
+    // Atomic: mark pomodoro completed; increment task counter only when task_id is set
     sqlite.transaction(() => {
       sqlite
         .prepare(`UPDATE pomodoros SET status='completed', ended_at=?, duration_seconds=?, notes=? WHERE id=?`)
         .run(now, actualDuration, notes ?? null, id);
-      sqlite
-        .prepare(`UPDATE tasks SET completed_pomodoros = completed_pomodoros + 1, updated_at=? WHERE id=?`)
-        .run(now, pom.taskId);
+      if (pom.taskId) {
+        sqlite
+          .prepare(`UPDATE tasks SET completed_pomodoros = completed_pomodoros + 1, updated_at=? WHERE id=?`)
+          .run(now, pom.taskId);
+      }
     })();
 
     const updated = db.select().from(pomodoros).where(eq(pomodoros.id, id)).get();

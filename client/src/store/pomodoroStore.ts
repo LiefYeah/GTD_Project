@@ -5,15 +5,14 @@ import { useSettingsStore } from './settingsStore';
 
 type TimerStatus = 'idle' | 'running';
 
-// sessionStorage key for persisting active pomodoro across page refreshes
 const SESSION_KEY = 'gtd-pomodoro-session';
 
 interface PersistedSession {
   pomId: string;
-  taskId: string;
+  taskId: string | null;
   taskTitle: string;
   durationSeconds: number;
-  startedAt: number; // ms timestamp when timer started
+  startedAt: number;
 }
 
 function saveSession(s: PersistedSession) {
@@ -24,7 +23,6 @@ function clearSession() {
   try { sessionStorage.removeItem(SESSION_KEY); } catch { /* ignore */ }
 }
 
-/** On page load, restore running state from sessionStorage if timer is still live. */
 function readSession(): Partial<PomodoroState> {
   try {
     const raw = sessionStorage.getItem(SESSION_KEY);
@@ -32,10 +30,7 @@ function readSession(): Partial<PomodoroState> {
     const s = JSON.parse(raw) as PersistedSession;
     const elapsed = Math.floor((Date.now() - s.startedAt) / 1000);
     const secondsLeft = Math.max(0, s.durationSeconds - elapsed);
-    if (secondsLeft <= 0) {
-      clearSession();
-      return {};
-    }
+    if (secondsLeft <= 0) { clearSession(); return {}; }
     return {
       pomId: s.pomId,
       taskId: s.taskId,
@@ -58,7 +53,8 @@ interface PomodoroState {
   status: TimerStatus;
   error: string | null;
 
-  start: (taskId: string, taskTitle: string, durationSeconds?: number) => Promise<void>;
+  /** taskId=null starts a free (no-task) pomodoro */
+  start: (taskId: string | null, taskTitle: string, durationSeconds?: number) => Promise<void>;
   complete: () => Promise<void>;
   interrupt: () => Promise<void>;
   tick: () => void;
@@ -75,7 +71,6 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
   secondsLeft: 1500,
   status: 'idle',
   error: null,
-  // Spread restored sessionStorage state (overrides defaults if active session found)
   ...restored,
 
   start: async (taskId, taskTitle, durationSeconds?) => {
@@ -101,13 +96,14 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
   },
 
   complete: async () => {
-    const { pomId } = get();
+    const { pomId, taskId } = get();
     if (!pomId) return;
     clearSession();
     set({ status: 'idle', pomId: null, taskId: null, taskTitle: '' });
     try {
       await api.completePomodoro(pomId);
-      useBoardStore.getState().load();
+      // Only reload board task counts when there was an associated task
+      if (taskId) useBoardStore.getState().load();
     } catch (e) {
       set({ error: String(e) });
     }

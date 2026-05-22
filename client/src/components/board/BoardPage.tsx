@@ -15,7 +15,7 @@ import { KanbanColumn } from './KanbanColumn';
 import { TaskCard } from './TaskCard';
 import { TaskDrawer } from './TaskDrawer';
 import { PomodoroCard } from './PomodoroCard';
-import { MiniCalendar } from './MiniCalendar';
+import { WeekPanel } from './WeekPanel';
 import { MiniProjects } from './MiniProjects';
 import type { Task, TaskStatus } from '../../types';
 import { COLUMN_IDS } from '../../types';
@@ -75,7 +75,7 @@ export function BoardPage() {
     if (!over) return;
 
     const activeId = String(active.id);
-    const overId = String(over.id);
+    const overId   = String(over.id);
     if (activeId === overId) return;
 
     const draggedTask = tasks.find((t) => t.id === activeId);
@@ -118,34 +118,32 @@ export function BoardPage() {
     <div className="flex h-full bg-background animate-in fade-in-0 duration-150">
       {/* ── Error toast ── */}
       {error && (
-        <div className="fixed top-4 right-80 z-50 bg-destructive text-destructive-foreground text-sm px-4 py-2 rounded-md shadow-md flex items-center gap-3">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-destructive text-destructive-foreground text-sm px-4 py-2 rounded-md shadow-md flex items-center gap-3">
           {error}
-          <button onClick={clearError} className="text-xs underline">
-            关闭
-          </button>
+          <button onClick={clearError} className="text-xs underline">关闭</button>
         </div>
       )}
 
-      {/* ── Left panel: Kanban board ── */}
-      <div className="flex flex-col flex-1 min-w-0">
-        <header className="sticky top-0 z-20 bg-background/90 backdrop-blur border-b border-border px-6 py-3 flex items-center gap-4">
-          <h1 className="text-lg font-semibold">看板</h1>
+      {/* ══ Left panel — Kanban (50%) ══ */}
+      <div className="flex flex-col w-1/2 min-w-0 border-r border-border">
+        {/* Header */}
+        <header className="sticky top-0 z-20 bg-background/90 backdrop-blur border-b border-border px-4 py-2.5 flex items-center gap-3">
+          <h1 className="text-sm font-semibold">看板</h1>
           <select
             value={projectFilter ?? ''}
             onChange={(e) => setProjectFilter(e.target.value || null)}
-            className="text-sm bg-background border border-border rounded-md px-2 py-1 outline-none cursor-pointer ml-auto"
+            className="text-xs bg-background border border-border rounded-md px-2 py-1 outline-none cursor-pointer ml-auto"
           >
             <option value="">所有项目</option>
             {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
+              <option key={p.id} value={p.id}>{p.name}</option>
             ))}
           </select>
         </header>
 
+        {/* Kanban columns — horizontally scrollable */}
         <div className="flex-1 overflow-x-auto">
-          <div className="inline-flex gap-4 p-6 min-h-full">
+          <div className="inline-flex gap-3 p-4 min-h-full">
             <DndContext
               sensors={sensors}
               collisionDetection={closestCorners}
@@ -163,7 +161,6 @@ export function BoardPage() {
                   onStartPomodoro={(task) => pomodoroStart(task.id, task.title)}
                 />
               ))}
-
               <DragOverlay>
                 {activeTask && (
                   <TaskCard
@@ -179,13 +176,19 @@ export function BoardPage() {
         </div>
       </div>
 
-      {/* ── Right panel: Pomodoro card / Mini calendar / Projects ── */}
-      <aside className="w-72 flex-shrink-0 border-l border-border flex flex-col overflow-hidden">
+      {/* ══ Right panel — Pomodoro / Week / Projects (50%) ══ */}
+      <aside className="flex flex-col w-1/2 min-w-0 overflow-hidden">
+        {/* Pomodoro card — always visible at top */}
         <PomodoroCard />
-        <MiniCalendar />
+
+        {/* Week view — takes remaining space */}
+        <WeekPanel onTaskClick={(task) => setSelectedTask(task)} />
+
+        {/* Projects — compact fixed section at bottom */}
         <MiniProjects />
       </aside>
 
+      {/* Task detail drawer */}
       <TaskDrawer
         task={selectedTask}
         projects={projects}

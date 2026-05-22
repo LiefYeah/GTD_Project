@@ -13,9 +13,9 @@ export function MiniProjects() {
   });
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div className="flex flex-col flex-shrink-0 max-h-44 border-t border-border">
       {/* Section header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border flex-shrink-0">
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-border flex-shrink-0">
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
           项目
         </span>
