@@ -74,3 +74,6 @@ export const interruptPomodoro = (id: string, notes?: string) =>
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ notes }),
   });
+
+export const getCalendar = (start: number, end: number) =>
+  req<{ tasks: Task[]; pomodoros: Pomodoro[] }>(`/calendar?start=${start}&end=${end}`);
