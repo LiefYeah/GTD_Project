@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { CheckCircle, XCircle } from 'lucide-react';
 import { usePomodoroStore } from '../../store/pomodoroStore';
 import { cn } from '../../lib/utils';
@@ -10,23 +10,14 @@ function formatTime(seconds: number): string {
 }
 
 export function PomodoroBar() {
+  const { pathname } = useLocation();
   const {
     status, taskTitle, secondsLeft, durationSeconds,
-    tick, complete, interrupt, error, clearError,
+    complete, interrupt, error, clearError,
   } = usePomodoroStore();
 
-  useEffect(() => {
-    if (status !== 'running') return;
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, [status, tick]);
-
-  useEffect(() => {
-    if (status === 'running' && secondsLeft <= 0) {
-      complete();
-    }
-  }, [status, secondsLeft, complete]);
-
+  // On the board page the PomodoroCard in the right panel takes over
+  if (pathname === '/board') return null;
   if (status === 'idle' && !error) return null;
 
   const progress = durationSeconds > 0 ? (durationSeconds - secondsLeft) / durationSeconds : 0;

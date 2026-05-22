@@ -7,7 +7,22 @@ import { SettingsPage } from './components/settings/SettingsPage';
 import { PomodoroBar } from './components/pomodoro/PomodoroBar';
 import { NavBar } from './components/NavBar';
 import { useSettingsStore } from './store/settingsStore';
+import { usePomodoroStore } from './store/pomodoroStore';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+
+/** Headless: drives tick + auto-complete for the pomodoro timer, always mounted regardless of route */
+function PomodoroTicker() {
+  const { status, secondsLeft, tick, complete } = usePomodoroStore();
+  useEffect(() => {
+    if (status !== 'running') return;
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [status, tick]);
+  useEffect(() => {
+    if (status === 'running' && secondsLeft <= 0) complete();
+  }, [status, secondsLeft, complete]);
+  return null;
+}
 
 /** Null-rendering component that registers keyboard shortcuts (needs useNavigate inside BrowserRouter) */
 function KeyboardShortcuts() {
@@ -27,6 +42,7 @@ function ThemeSync() {
 export default function App() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <PomodoroTicker />
       <ThemeSync />
       <KeyboardShortcuts />
       <div className="flex flex-col h-screen">
@@ -41,7 +57,7 @@ export default function App() {
           </Routes>
         </main>
       </div>
-      {/* PomodoroBar lives outside Routes — survives navigation */}
+      {/* PomodoroBar: hidden on /board (PomodoroCard is shown there instead) */}
       <PomodoroBar />
     </BrowserRouter>
   );

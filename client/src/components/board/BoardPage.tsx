@@ -14,6 +14,9 @@ import { usePomodoroStore } from '../../store/pomodoroStore';
 import { KanbanColumn } from './KanbanColumn';
 import { TaskCard } from './TaskCard';
 import { TaskDrawer } from './TaskDrawer';
+import { PomodoroCard } from './PomodoroCard';
+import { MiniCalendar } from './MiniCalendar';
+import { MiniProjects } from './MiniProjects';
 import type { Task, TaskStatus } from '../../types';
 import { COLUMN_IDS } from '../../types';
 
@@ -105,16 +108,17 @@ export function BoardPage() {
 
   if (isLoading && tasks.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-screen text-muted-foreground text-sm">
+      <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
         加载中…
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full bg-background animate-in fade-in-0 duration-150">
+    <div className="flex h-full bg-background animate-in fade-in-0 duration-150">
+      {/* ── Error toast ── */}
       {error && (
-        <div className="fixed top-4 right-4 z-50 bg-destructive text-destructive-foreground text-sm px-4 py-2 rounded-md shadow-md flex items-center gap-3">
+        <div className="fixed top-4 right-80 z-50 bg-destructive text-destructive-foreground text-sm px-4 py-2 rounded-md shadow-md flex items-center gap-3">
           {error}
           <button onClick={clearError} className="text-xs underline">
             关闭
@@ -122,56 +126,65 @@ export function BoardPage() {
         </div>
       )}
 
-      <header className="sticky top-0 z-20 bg-background/90 backdrop-blur border-b border-border px-6 py-3 flex items-center gap-4">
-        <h1 className="text-lg font-semibold">看板</h1>
-        <select
-          value={projectFilter ?? ''}
-          onChange={(e) => setProjectFilter(e.target.value || null)}
-          className="text-sm bg-background border border-border rounded-md px-2 py-1 outline-none cursor-pointer ml-auto"
-        >
-          <option value="">所有项目</option>
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
-      </header>
-
-      {/* pb-16 reserves space so PomodoroBar never covers bottom cards */}
-      <div className="flex-1 overflow-x-auto pb-16">
-        <div className="inline-flex gap-4 p-6 min-h-full">
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCorners}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
+      {/* ── Left panel: Kanban board ── */}
+      <div className="flex flex-col flex-1 min-w-0">
+        <header className="sticky top-0 z-20 bg-background/90 backdrop-blur border-b border-border px-6 py-3 flex items-center gap-4">
+          <h1 className="text-lg font-semibold">看板</h1>
+          <select
+            value={projectFilter ?? ''}
+            onChange={(e) => setProjectFilter(e.target.value || null)}
+            className="text-sm bg-background border border-border rounded-md px-2 py-1 outline-none cursor-pointer ml-auto"
           >
-            {COLUMN_IDS.map((status) => (
-              <KanbanColumn
-                key={status}
-                status={status}
-                tasks={columnTasks[status]}
-                projects={projects}
-                onTaskClick={(task) => setSelectedTask(task)}
-                onAddTask={(title, s) => addTask(title, s, projectFilter ?? undefined)}
-                onStartPomodoro={(task) => pomodoroStart(task.id, task.title)}
-              />
+            <option value="">所有项目</option>
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
             ))}
+          </select>
+        </header>
 
-            <DragOverlay>
-              {activeTask && (
-                <TaskCard
-                  task={activeTask}
-                  project={activeTask.projectId ? projectMap[activeTask.projectId] : undefined}
-                  onClick={() => {}}
-                  isDragOverlay
+        <div className="flex-1 overflow-x-auto">
+          <div className="inline-flex gap-4 p-6 min-h-full">
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCorners}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+            >
+              {COLUMN_IDS.map((status) => (
+                <KanbanColumn
+                  key={status}
+                  status={status}
+                  tasks={columnTasks[status]}
+                  projects={projects}
+                  onTaskClick={(task) => setSelectedTask(task)}
+                  onAddTask={(title, s) => addTask(title, s, projectFilter ?? undefined)}
+                  onStartPomodoro={(task) => pomodoroStart(task.id, task.title)}
                 />
-              )}
-            </DragOverlay>
-          </DndContext>
+              ))}
+
+              <DragOverlay>
+                {activeTask && (
+                  <TaskCard
+                    task={activeTask}
+                    project={activeTask.projectId ? projectMap[activeTask.projectId] : undefined}
+                    onClick={() => {}}
+                    isDragOverlay
+                  />
+                )}
+              </DragOverlay>
+            </DndContext>
+          </div>
         </div>
       </div>
+
+      {/* ── Right panel: Pomodoro card / Mini calendar / Projects ── */}
+      <aside className="w-72 flex-shrink-0 border-l border-border flex flex-col overflow-hidden">
+        <PomodoroCard />
+        <MiniCalendar />
+        <MiniProjects />
+      </aside>
 
       <TaskDrawer
         task={selectedTask}
