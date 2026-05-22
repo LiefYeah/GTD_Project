@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import * as api from '../api/client';
 import { useBoardStore } from './boardStore';
+import { useSettingsStore } from './settingsStore';
 
 type TimerStatus = 'idle' | 'running';
 
@@ -29,7 +30,8 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
   status: 'idle',
   error: null,
 
-  start: async (taskId, taskTitle, durationSeconds = 1500) => {
+  start: async (taskId, taskTitle, durationSeconds?) => {
+    durationSeconds ??= useSettingsStore.getState().pomodoroDuration;
     const { pomId } = get();
     if (pomId) await get().interrupt();
     try {

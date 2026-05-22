@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutGrid, Calendar } from 'lucide-react';
+import { LayoutGrid, Calendar, FolderOpen, Settings } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export function NavBar() {
@@ -21,6 +21,14 @@ export function NavBar() {
       <NavLink to="/calendar" className={linkClass}>
         <Calendar className="w-4 h-4" />
         日历
+      </NavLink>
+      <NavLink to="/projects" className={linkClass}>
+        <FolderOpen className="w-4 h-4" />
+        项目
+      </NavLink>
+      <NavLink to="/settings" className={linkClass}>
+        <Settings className="w-4 h-4" />
+        设置
       </NavLink>
     </nav>
   );

@@ -77,3 +77,25 @@ export const interruptPomodoro = (id: string, notes?: string) =>
 
 export const getCalendar = (start: number, end: number) =>
   req<{ tasks: Task[]; pomodoros: Pomodoro[] }>(`/calendar?start=${start}&end=${end}`);
+
+export const createProject = (data: { name: string; description?: string; color?: string }) =>
+  req<Project>('/projects', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+
+export const updateProject = (
+  id: string,
+  data: { name?: string; description?: string | null; color?: string | null },
+) =>
+  req<Project>(`/projects/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+
+export const archiveProject = (id: string) =>
+  req<{ success: boolean }>(`/projects/${id}`, { method: 'DELETE' });
+
+export const getAllPomodoros = () => req<Pomodoro[]>('/pomodoros');
