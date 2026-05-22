@@ -1,0 +1,108 @@
+### Health
+GET http://localhost:3001/api/health
+
+###
+# ── PROJECTS ──────────────────────────────────────────────────────────────────
+
+### List projects (expect seed project "GTD 入门项目")
+GET http://localhost:3001/api/projects
+
+### Create project
+POST http://localhost:3001/api/projects
+Content-Type: application/json
+
+{
+  "name": "新项目",
+  "description": "REST Client 测试",
+  "color": "#e03e3e"
+}
+
+### Update project (replace {{project_id}} with id from Create response)
+PATCH http://localhost:3001/api/projects/{{project_id}}
+Content-Type: application/json
+
+{ "name": "更新后的项目名", "color": "#10b981" }
+
+### Archive project (soft-delete: sets archived=1)
+DELETE http://localhost:3001/api/projects/{{project_id}}
+
+###
+# ── TASKS ─────────────────────────────────────────────────────────────────────
+
+### List all tasks (sorted by sort_order)
+GET http://localhost:3001/api/tasks
+
+### Filter by status
+GET http://localhost:3001/api/tasks?status=planned
+
+### Filter by project
+GET http://localhost:3001/api/tasks?project_id={{seed_project_id}}
+
+### Create task (sort_order auto-computed as last+1 in the column)
+POST http://localhost:3001/api/tasks
+Content-Type: application/json
+
+{
+  "title": "API 测试任务",
+  "status": "planned",
+  "estimated_pomodoros": 2,
+  "project_id": "{{seed_project_id}}"
+}
+
+### Move task to in_progress
+PATCH http://localhost:3001/api/tasks/{{task_id}}
+Content-Type: application/json
+
+{ "status": "in_progress" }
+
+### Move task to done (completedAt auto-filled)
+PATCH http://localhost:3001/api/tasks/{{task_id}}
+Content-Type: application/json
+
+{ "status": "done" }
+
+### Update sort_order (drag-drop: client computes midpoint, sends new value)
+PATCH http://localhost:3001/api/tasks/{{task_id}}
+Content-Type: application/json
+
+{ "sort_order": 1.5 }
+
+### Delete task (hard delete)
+DELETE http://localhost:3001/api/tasks/{{task_id}}
+
+###
+# ── POMODOROS ─────────────────────────────────────────────────────────────────
+
+### Start pomodoro
+POST http://localhost:3001/api/pomodoros
+Content-Type: application/json
+
+{ "task_id": "{{in_progress_task_id}}", "duration_seconds": 1500 }
+
+### Complete pomodoro (atomic: status=completed + task.completed_pomodoros += 1)
+PATCH http://localhost:3001/api/pomodoros/{{pom_id}}/complete
+Content-Type: application/json
+
+{ "notes": "专注完成，无干扰" }
+
+### Interrupt pomodoro (status=interrupted, does NOT increment counter)
+PATCH http://localhost:3001/api/pomodoros/{{pom_id}}/interrupt
+Content-Type: application/json
+
+{ "notes": "被电话打断" }
+
+### Today's completed pomodoros
+GET http://localhost:3001/api/pomodoros/today
+
+### Task history
+GET http://localhost:3001/api/pomodoros?task_id={{task_id}}
+
+###
+# ── CALENDAR ──────────────────────────────────────────────────────────────────
+
+### Today's window
+### today_start = midnight ms timestamp, today_end = today_start + 86400000
+GET http://localhost:3001/api/calendar?start={{today_start_ms}}&end={{today_end_ms}}
+
+### Validation: missing params → 400
+GET http://localhost:3001/api/calendar

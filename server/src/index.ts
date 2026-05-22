@@ -2,6 +2,10 @@ import express from 'express';
 import cors from 'cors';
 import { runMigrations } from './db/migrate';
 import { seedDatabase } from './db/seed';
+import projectsRouter from './routes/projects';
+import tasksRouter from './routes/tasks';
+import pomodorosRouter from './routes/pomodoros';
+import calendarRouter from './routes/calendar';
 
 const app = express();
 const PORT = Number(process.env.PORT ?? 3001);
@@ -13,18 +17,16 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: Date.now() });
 });
 
-// 统一错误处理（必须在路由之后注册，signature 四参数触发 Express 错误处理）
-app.use(
-  (
-    err: Error,
-    _req: express.Request,
-    res: express.Response,
-    _next: express.NextFunction
-  ) => {
-    console.error(err);
-    res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: err.message } });
-  }
-);
+app.use('/api/projects', projectsRouter);
+app.use('/api/tasks', tasksRouter);
+app.use('/api/pomodoros', pomodorosRouter);
+app.use('/api/calendar', calendarRouter);
+
+// Error handler MUST be last — 4-arg signature is what Express uses to identify error middleware
+app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error(err);
+  res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: err.message } });
+});
 
 runMigrations();
 seedDatabase();
