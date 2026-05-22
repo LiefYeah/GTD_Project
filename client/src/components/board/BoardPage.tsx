@@ -176,16 +176,20 @@ export function BoardPage() {
         </div>
       </div>
 
-      {/* ══ Right panel — Pomodoro / Week / Projects (50%) ══ */}
+      {/* ══ Right panel — (Projects + Pomodoro) / Week (50%) ══ */}
       <aside className="flex flex-col w-1/2 min-w-0 overflow-hidden">
-        {/* Pomodoro card — always visible at top */}
-        <PomodoroCard />
+        {/* Top row: Projects (left) + Pomodoro (right) */}
+        <div className="flex flex-shrink-0 h-48 border-b border-border">
+          <div className="flex-1 min-w-0 border-r border-border overflow-hidden">
+            <MiniProjects />
+          </div>
+          <div className="w-56 flex-shrink-0 overflow-hidden">
+            <PomodoroCard />
+          </div>
+        </div>
 
         {/* Week view — takes remaining space */}
         <WeekPanel onTaskClick={(task) => setSelectedTask(task)} />
-
-        {/* Projects — compact fixed section at bottom */}
-        <MiniProjects />
       </aside>
 
       {/* Task detail drawer */}

@@ -51,7 +51,7 @@ export function PomodoroCard() {
   };
 
   return (
-    <div className="border-b border-border flex-shrink-0">
+    <div className="h-full flex flex-col overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-1.5 px-3 pt-2.5 pb-1">
         <Timer className="w-3.5 h-3.5 text-muted-foreground" />
@@ -73,15 +73,22 @@ export function PomodoroCard() {
 
       {/* ── Idle state ── */}
       {!isRunning && (
-        <div className="flex items-center gap-3 px-3 pb-3 pt-1">
-          {/* Compact ring (empty) */}
-          <div className="relative flex items-center justify-center flex-shrink-0">
+        <div className="flex flex-col items-center gap-2 px-3 py-2 flex-1 min-w-0">
+          {/* Ring with default time */}
+          <div className="relative flex items-center justify-center">
             <Ring progress={0} />
-            <span className="absolute text-2xl select-none">🍅</span>
+            <div className="absolute flex flex-col items-center select-none">
+              <span className="font-mono text-lg font-bold tabular-nums leading-none">
+                25
+              </span>
+              <span className="text-[10px] text-muted-foreground mt-0.5">
+                倒计时
+              </span>
+            </div>
           </div>
 
           {/* Task picker + start */}
-          <div className="flex flex-col gap-2 flex-1 min-w-0">
+          <div className="w-full flex flex-col gap-1.5 min-w-0">
             <select
               value={selectedTaskId}
               onChange={(e) => setSelectedTaskId(e.target.value)}
@@ -116,9 +123,9 @@ export function PomodoroCard() {
 
       {/* ── Running state ── */}
       {isRunning && (
-        <div className="flex items-center gap-3 px-3 pb-3 pt-1">
+        <div className="flex flex-col items-center gap-2 px-3 py-2 flex-1 min-w-0">
           {/* Ring with countdown */}
-          <div className="relative flex items-center justify-center flex-shrink-0">
+          <div className="relative flex items-center justify-center">
             <Ring progress={progress} />
             <div className="absolute flex flex-col items-center select-none">
               <span className={cn(
@@ -135,11 +142,11 @@ export function PomodoroCard() {
           </div>
 
           {/* Task name + controls */}
-          <div className="flex flex-col gap-2 flex-1 min-w-0">
-            <p className="text-xs font-medium line-clamp-2 text-foreground leading-snug">
+          <div className="w-full flex flex-col gap-1.5 min-w-0">
+            <p className="text-xs font-medium line-clamp-2 text-foreground leading-snug text-center">
               {taskTitle}
             </p>
-            <div className="flex gap-1.5">
+            <div className="flex gap-1.5 flex-wrap justify-center">
               <button
                 onClick={() => complete()}
                 className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-md transition-opacity hover:opacity-80 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
