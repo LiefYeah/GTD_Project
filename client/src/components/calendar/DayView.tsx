@@ -1,8 +1,7 @@
 import { useRef, useEffect } from 'react';
 import { isSameDay, format, getHours, getMinutes } from 'date-fns';
-import { cn } from '../../lib/utils';
 import { DAY_NAMES, HOUR_HEIGHT, HOURS } from '../../lib/calendar';
-import type { Task, Pomodoro } from '../../types';
+import type { Task, Pomodoro, Project } from '../../types';
 
 function toTopPx(ts: number): number {
   const d = new Date(ts);
@@ -17,17 +16,23 @@ interface Props {
   currentDate: Date;
   tasks: Task[];
   pomodoros: Pomodoro[];
+  projects: Project[];
   onTaskClick: (task: Task) => void;
 }
 
-export function DayView({ currentDate, tasks, pomodoros, onTaskClick }: Props) {
+export function DayView({ currentDate, tasks, pomodoros, projects, onTaskClick }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const today = new Date();
   const isToday = isSameDay(currentDate, today);
+  const projectMap = Object.fromEntries(projects.map((p) => [p.id, p]));
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = 8 * HOUR_HEIGHT;
   }, [currentDate]);
+
+  function taskColor(task: Task): string {
+    return (task.projectId && projectMap[task.projectId]?.color) ?? 'var(--c-plan)';
+  }
 
   const timedTasks = tasks.filter(
     (t) => t.scheduledStart && t.allDay !== 1 && isSameDay(new Date(t.scheduledStart), currentDate),
@@ -45,49 +50,89 @@ export function DayView({ currentDate, tasks, pomodoros, onTaskClick }: Props) {
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
       {/* Day header */}
-      <div className="flex-shrink-0 border-b border-border px-4 py-3 flex items-center gap-3">
+      <div
+        className="flex-shrink-0 px-5 py-3 flex items-center gap-4"
+        style={{
+          borderBottom: '1px solid var(--line-soft)',
+          background: 'var(--surface)',
+        }}
+      >
         <div
-          className={cn(
-            'text-2xl font-bold w-12 h-12 flex items-center justify-center rounded-full flex-shrink-0',
-            isToday && 'bg-primary text-primary-foreground',
-          )}
+          className="text-2xl font-bold w-12 h-12 flex items-center justify-center rounded-full flex-shrink-0"
+          style={{
+            fontFamily: 'var(--font-mono)',
+            ...(isToday
+              ? { background: 'var(--brand)', color: '#fff' }
+              : { background: 'var(--bg-2)', color: 'var(--ink)' }),
+          }}
         >
           {format(currentDate, 'd')}
         </div>
         <div>
-          <div className="font-medium">{format(currentDate, 'yyyy年M月')}</div>
-          <div className="text-sm text-muted-foreground">
+          <div
+            className="font-semibold"
+            style={{ color: 'var(--ink)', letterSpacing: '-0.01em' }}
+          >
+            {format(currentDate, 'yyyy年M月')}
+          </div>
+          <div
+            className="text-sm"
+            style={{ color: 'var(--ink-mute)', fontFamily: 'var(--font-mono)', fontSize: 12 }}
+          >
             星期{DAY_NAMES[currentDate.getDay() === 0 ? 6 : currentDate.getDay() - 1]}
-            {pomCount > 0 && ` · 🍅 ${pomCount} 个番茄`}
+            {pomCount > 0 && (
+              <span style={{ color: 'var(--brand)', marginLeft: 8 }}>🍅 {pomCount} 个番茄</span>
+            )}
           </div>
         </div>
       </div>
 
       {/* All-day strip */}
       {allDayTasks.length > 0 && (
-        <div className="flex-shrink-0 border-b border-border px-4 py-1.5 space-y-1">
-          {allDayTasks.map((t) => (
-            <div
-              key={t.id}
-              onClick={() => onTaskClick(t)}
-              className="text-sm truncate px-2 py-1 rounded bg-muted hover:bg-muted/80 cursor-pointer"
-            >
-              {t.title}
-            </div>
-          ))}
+        <div
+          className="flex-shrink-0 px-5 py-2 space-y-1"
+          style={{
+            borderBottom: '1px solid var(--line-soft)',
+            background: 'var(--bg-2)',
+          }}
+        >
+          {allDayTasks.map((t) => {
+            const color = taskColor(t);
+            return (
+              <div
+                key={t.id}
+                onClick={() => onTaskClick(t)}
+                className="text-sm truncate px-2.5 py-1 rounded-lg cursor-pointer transition-colors duration-100"
+                style={{
+                  background: `color-mix(in oklab, ${color} 10%, var(--surface))`,
+                  borderLeft: `3px solid ${color}`,
+                  color: 'var(--ink-soft)',
+                }}
+              >
+                {t.title}
+              </div>
+            );
+          })}
         </div>
       )}
 
       {/* Scrollable time grid */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto" style={{ background: 'var(--surface)' }}>
         <div className="flex" style={{ height: `${24 * HOUR_HEIGHT}px` }}>
           {/* Time gutter */}
           <div className="relative flex-shrink-0" style={{ width: '60px' }}>
             {HOURS.map((h) => (
               <div
                 key={h}
-                className="absolute text-xs text-muted-foreground text-right pr-2"
-                style={{ top: `${h * HOUR_HEIGHT - 8}px`, width: '56px' }}
+                className="absolute text-right pr-3"
+                style={{
+                  top: `${h * HOUR_HEIGHT - 8}px`,
+                  width: '56px',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 10,
+                  color: 'var(--ink-faint)',
+                  letterSpacing: '0.02em',
+                }}
               >
                 {h === 0 ? '' : `${h.toString().padStart(2, '0')}:00`}
               </div>
@@ -95,19 +140,30 @@ export function DayView({ currentDate, tasks, pomodoros, onTaskClick }: Props) {
           </div>
 
           {/* Single day column */}
-          <div className="flex-1 relative border-l border-border">
+          <div
+            className="flex-1 relative"
+            style={{ borderLeft: '1px solid var(--line-soft)' }}
+          >
+            {/* Hour lines */}
             {HOURS.map((h) => (
               <div
                 key={h}
-                className="absolute w-full border-t border-border/30"
-                style={{ top: `${h * HOUR_HEIGHT}px` }}
+                className="absolute w-full"
+                style={{
+                  top: `${h * HOUR_HEIGHT}px`,
+                  borderTop: '1px dashed var(--line-soft)',
+                }}
               />
             ))}
+            {/* Half-hour lines */}
             {HOURS.map((h) => (
               <div
                 key={`hh-${h}`}
-                className="absolute w-full border-t border-border/10"
-                style={{ top: `${h * HOUR_HEIGHT + 30}px` }}
+                className="absolute w-full"
+                style={{
+                  top: `${h * HOUR_HEIGHT + 30}px`,
+                  borderTop: '1px solid var(--bg-2)',
+                }}
               />
             ))}
 
@@ -116,6 +172,7 @@ export function DayView({ currentDate, tasks, pomodoros, onTaskClick }: Props) {
               const height = task.scheduledEnd
                 ? durationPx(task.scheduledStart!, task.scheduledEnd)
                 : 30;
+              const color = taskColor(task);
               return (
                 <div
                   key={task.id}
@@ -124,14 +181,35 @@ export function DayView({ currentDate, tasks, pomodoros, onTaskClick }: Props) {
                     position: 'absolute',
                     top: `${top}px`,
                     height: `${height}px`,
-                    left: '8px',
-                    right: '8px',
+                    left: '12px',
+                    right: '12px',
+                    background: `color-mix(in oklab, ${color} 10%, var(--surface))`,
+                    border: `1px solid color-mix(in oklab, ${color} 25%, var(--line))`,
+                    borderLeft: `3px solid ${color}`,
+                    borderRadius: 10,
+                    padding: '6px 12px',
+                    cursor: 'pointer',
+                    overflow: 'hidden',
                   }}
-                  className="bg-primary/15 border-l-2 border-primary rounded px-2 py-1 text-sm cursor-pointer overflow-hidden hover:bg-primary/25 transition-colors"
+                  className="transition-all duration-150"
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLElement).style.background = `color-mix(in oklab, ${color} 18%, var(--surface))`;
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.background = `color-mix(in oklab, ${color} 10%, var(--surface))`;
+                  }}
                 >
-                  <div className="font-medium truncate">{task.title}</div>
+                  <div
+                    className="font-medium truncate"
+                    style={{ color: 'var(--ink)', fontSize: 13 }}
+                  >
+                    {task.title}
+                  </div>
                   {height > 36 && task.scheduledStart && (
-                    <div className="text-xs text-muted-foreground">
+                    <div
+                      className="mt-0.5"
+                      style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-mute)' }}
+                    >
                       {format(new Date(task.scheduledStart), 'HH:mm')}
                       {task.scheduledEnd
                         ? ` – ${format(new Date(task.scheduledEnd), 'HH:mm')}`

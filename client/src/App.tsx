@@ -45,7 +45,7 @@ export default function App() {
       <PomodoroTicker />
       <ThemeSync />
       <KeyboardShortcuts />
-      <div className="flex flex-col h-screen">
+      <div className="flex flex-col h-screen app-bg">
         <NavBar />
         <main className="flex-1 overflow-hidden">
           <Routes>

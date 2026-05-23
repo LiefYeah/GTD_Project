@@ -4,35 +4,103 @@
 
 @layer base {
   :root {
-    --background: 0 0% 98%;
-    --foreground: 224 71.4% 4.1%;
-    --muted: 220 14.3% 95.9%;
-    --muted-foreground: 220 8.9% 46.1%;
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --primary: 220.9 39.3% 11%;
-    --primary-foreground: 210 20% 98%;
-    --destructive: 0 72.2% 50.6%;
-    --destructive-foreground: 210 20% 98%;
-    --accent: 220 14.3% 95.9%;
-    --accent-foreground: 220.9 39.3% 11%;
-    --radius: 0.375rem;
+    /* Warm paper white background */
+    --background: 38 44% 97%;       /* #FAF7F2 */
+    --foreground: 240 13% 9%;       /* #15151B */
+
+    /* Surfaces */
+    --card: 0 0% 100%;              /* #FFFFFF */
+    --card-foreground: 240 13% 9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 13% 9%;
+
+    /* Muted = warm off-white (bg-2) */
+    --muted: 40 33% 93%;            /* #F3EFE7 */
+    --muted-foreground: 45 5% 53%;  /* #8E8B82 */
+
+    /* Border = warm line */
+    --border: 40 29% 88%;           /* #E9E3D7 */
+    --input: 40 29% 88%;
+
+    /* Brand = tomato orange-red */
+    --primary: 10 100% 61%;         /* #FF5C3A */
+    --primary-foreground: 0 0% 100%;
+
+    /* Accent = bg-2 */
+    --accent: 40 33% 93%;
+    --accent-foreground: 240 13% 9%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --radius: 0.5rem;
   }
 
   .dark {
-    --background: 224 71.4% 4.1%;
-    --foreground: 210 20% 98%;
-    --muted: 215 27.9% 16.9%;
-    --muted-foreground: 217.9 10.6% 64.9%;
-    --border: 215 27.9% 16.9%;
-    --input: 215 27.9% 16.9%;
-    --primary: 210 20% 98%;
-    --primary-foreground: 220.9 39.3% 11%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 20% 98%;
-    --accent: 215 27.9% 16.9%;
-    --accent-foreground: 210 20% 98%;
+    --background: 252 22% 9%;       /* #14121C */
+    --foreground: 42 31% 94%;       /* #F4F1EA */
+
+    --card: 250 19% 12%;            /* #1B1925 */
+    --card-foreground: 42 31% 94%;
+    --popover: 250 19% 12%;
+    --popover-foreground: 42 31% 94%;
+
+    --muted: 250 19% 15%;           /* slightly lighter than card */
+    --muted-foreground: 258 6% 56%; /* #8B8794 */
+
+    --border: 247 18% 19%;          /* #2A2839 */
+    --input: 247 18% 19%;
+
+    --primary: 10 100% 61%;         /* brand stays same */
+    --primary-foreground: 0 0% 100%;
+
+    --accent: 250 19% 17%;
+    --accent-foreground: 42 31% 94%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 0 0% 100%;
   }
+}
+
+/* ── Design system tokens (used directly in components) ── */
+:root {
+  --brand: #FF5C3A;
+  --brand-soft: color-mix(in oklab, var(--brand) 14%, transparent);
+  --brand-ink: color-mix(in oklab, var(--brand) 80%, #1a1014);
+
+  --c-plan:  #2563EB;
+  --c-doing: #F59E0B;
+  --c-hold:  #64748B;
+  --c-done:  #10B981;
+
+  --ink: #15151B;
+  --ink-soft: #4A4A55;
+  --ink-mute: #8E8B82;
+  --ink-faint: #B8B3A6;
+  --bg: #FAF7F2;
+  --bg-2: #F3EFE7;
+  --surface: #FFFFFF;
+  --line: #E9E3D7;
+  --line-soft: #F1ECDF;
+
+  --shadow-sm: 0 1px 0 rgba(20, 16, 8, 0.04), 0 2px 8px -2px rgba(20, 16, 8, 0.06);
+  --shadow-md: 0 4px 24px -8px rgba(20, 16, 8, 0.12), 0 1px 0 rgba(20, 16, 8, 0.04);
+
+  --font-serif: "Newsreader", "Iowan Old Style", Georgia, serif;
+  --font-mono: ui-monospace, "JetBrains Mono", "Geist Mono", Menlo, monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Inter", "PingFang SC", system-ui, sans-serif;
+}
+
+.dark {
+  --ink: #F4F1EA;
+  --ink-soft: #C2BFB6;
+  --ink-mute: #8B8794;
+  --ink-faint: #5C5A6A;
+  --bg: #14121C;
+  --bg-2: #0F0D17;
+  --surface: #1B1925;
+  --line: #2A2839;
+  --line-soft: #221F2E;
 }
 
 * {
@@ -40,9 +108,40 @@
   box-sizing: border-box;
 }
 
+html, body {
+  margin: 0;
+}
+
 body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
-  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', system-ui, sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "ss01", "cv11";
 }
+
+/* Radial gradient app background */
+.app-bg {
+  min-height: 100vh;
+  background:
+    radial-gradient(1200px 600px at 12% -10%, color-mix(in oklab, var(--brand) 8%, transparent), transparent 60%),
+    radial-gradient(800px 400px at 92% 8%, color-mix(in oklab, var(--c-plan) 6%, transparent), transparent 65%),
+    hsl(var(--background));
+}
+
+/* Serif font utility */
+.font-serif {
+  font-family: var(--font-serif) !important;
+}
+
+/* Mono font utility */
+.font-mono {
+  font-family: var(--font-mono) !important;
+}
+
+/* Blinking colon for pomodoro */
+@keyframes blink {
+  50% { opacity: 0.3; }
+}
+.blink { animation: blink 1s infinite steps(2); }

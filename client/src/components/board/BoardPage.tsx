@@ -14,9 +14,8 @@ import { usePomodoroStore } from '../../store/pomodoroStore';
 import { KanbanColumn } from './KanbanColumn';
 import { TaskCard } from './TaskCard';
 import { TaskDrawer } from './TaskDrawer';
-import { PomodoroCard } from './PomodoroCard';
-import { WeekPanel } from './WeekPanel';
-import { MiniProjects } from './MiniProjects';
+import { FocusHero } from './FocusHero';
+import { TodaySchedule } from './TodaySchedule';
 import type { Task, TaskStatus } from '../../types';
 import { COLUMN_IDS } from '../../types';
 
@@ -42,7 +41,6 @@ export function BoardPage() {
   } = useBoardStore();
 
   const pomodoroStart = usePomodoroStore((s) => s.start);
-
   const [activeTask, setActiveTask] = useState<Task | null>(null);
 
   useEffect(() => { load(); }, [load]);
@@ -108,89 +106,163 @@ export function BoardPage() {
 
   if (isLoading && tasks.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+      <div className="flex items-center justify-center min-h-[60vh]" style={{ color: 'var(--ink-mute)' }}>
         加载中…
       </div>
     );
   }
 
   return (
-    <div className="flex h-full bg-background animate-in fade-in-0 duration-150">
+    <div className="h-full flex flex-col animate-in fade-in-0 duration-150">
       {/* ── Error toast ── */}
       {error && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-destructive text-destructive-foreground text-sm px-4 py-2 rounded-md shadow-md flex items-center gap-3">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-destructive text-destructive-foreground text-sm px-4 py-2 rounded-lg shadow-lg flex items-center gap-3">
           {error}
           <button onClick={clearError} className="text-xs underline">关闭</button>
         </div>
       )}
 
-      {/* ══ Left panel — Kanban (50%) ══ */}
-      <div className="flex flex-col w-1/2 min-w-0 border-r border-border">
-        {/* Header */}
-        <header className="sticky top-0 z-20 bg-background/90 backdrop-blur border-b border-border px-4 py-2.5 flex items-center gap-3">
-          <h1 className="text-sm font-semibold">看板</h1>
-          <select
-            value={projectFilter ?? ''}
-            onChange={(e) => setProjectFilter(e.target.value || null)}
-            className="text-xs bg-background border border-border rounded-md px-2 py-1 outline-none cursor-pointer ml-auto"
-          >
-            <option value="">所有项目</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
-        </header>
+      {/* Page content: fill available height, no outer scroll */}
+      <div
+        className="flex-1 min-h-0 flex flex-col mx-auto w-full"
+        style={{
+          maxWidth: 1640,
+          padding: '16px 28px 16px',
+        }}
+      >
+        {/* ── Hero section: fixed height ── */}
+        <div className="flex-shrink-0 mb-5">
+          <FocusHero />
+        </div>
 
-        {/* Kanban columns — horizontally scrollable */}
-        <div className="flex-1 overflow-x-auto">
-          <div className="inline-flex gap-3 p-4 min-h-full">
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCorners}
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
+        {/* ── Workspace: fills remaining height ── */}
+        <div
+          className="flex-1 min-h-0 grid gap-5"
+          style={{ gridTemplateColumns: 'minmax(0, 1.55fr) minmax(360px, 1fr)' }}
+        >
+          {/* Left: Kanban board — full height, internal scroll */}
+          <div
+            className="h-full flex flex-col rounded-3xl overflow-hidden"
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--line)',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+          >
+            {/* Board header: fixed */}
+            <div
+              className="flex-shrink-0 flex items-center justify-between gap-4 px-6 py-4"
+              style={{ borderBottom: '1px solid var(--line-soft)' }}
             >
-              {COLUMN_IDS.map((status) => (
-                <KanbanColumn
-                  key={status}
-                  status={status}
-                  tasks={columnTasks[status]}
-                  projects={projects}
-                  onTaskClick={(task) => setSelectedTask(task)}
-                  onAddTask={(title, s) => addTask(title, s, projectFilter ?? undefined)}
-                  onStartPomodoro={(task) => pomodoroStart(task.id, task.title)}
-                />
-              ))}
-              <DragOverlay>
-                {activeTask && (
-                  <TaskCard
-                    task={activeTask}
-                    project={activeTask.projectId ? projectMap[activeTask.projectId] : undefined}
-                    onClick={() => {}}
-                    isDragOverlay
-                  />
-                )}
-              </DragOverlay>
-            </DndContext>
+              <div className="flex items-center gap-3">
+                {/* Board icon */}
+                <span
+                  className="w-8 h-8 rounded-xl grid place-items-center text-base flex-shrink-0"
+                  style={{
+                    background: 'var(--brand-soft)',
+                    color: 'var(--brand)',
+                  }}
+                >
+                  ▦
+                </span>
+                <h2
+                  className="text-xl font-semibold tracking-tight"
+                  style={{ color: 'var(--ink)', letterSpacing: '-0.02em' }}
+                >
+                  看板
+                </h2>
+                <span
+                  className="text-xs"
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    color: 'var(--ink-mute)',
+                    letterSpacing: '0.02em',
+                  }}
+                >
+                  {tasks.filter((t) => t.status === 'in_progress').length} 个任务进行中
+                  · {tasks.filter((t) => t.status === 'done').length} 个已完成
+                </span>
+              </div>
+
+              {/* Project filter - segmented */}
+              <div
+                className="flex gap-0.5 p-1 rounded-xl"
+                style={{ background: 'var(--bg-2)', border: '1px solid var(--line)' }}
+              >
+                <button
+                  onClick={() => setProjectFilter(null)}
+                  className="px-3 py-1 text-xs font-medium rounded-lg transition-all duration-150"
+                  style={!projectFilter ? {
+                    background: 'var(--surface)',
+                    color: 'var(--ink)',
+                    boxShadow: 'var(--shadow-sm)',
+                  } : {
+                    color: 'var(--ink-soft)',
+                  }}
+                >
+                  全部
+                </button>
+                {projects.slice(0, 3).map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => setProjectFilter(p.id)}
+                    className="px-3 py-1 text-xs font-medium rounded-lg transition-all duration-150"
+                    style={projectFilter === p.id ? {
+                      background: 'var(--surface)',
+                      color: 'var(--ink)',
+                      boxShadow: 'var(--shadow-sm)',
+                    } : {
+                      color: 'var(--ink-soft)',
+                    }}
+                  >
+                    {p.name.length > 6 ? p.name.slice(0, 6) + '…' : p.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Kanban grid: scrollable area */}
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto p-5">
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCorners}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+              >
+                <div
+                  className="grid gap-3"
+                  style={{ gridTemplateColumns: 'repeat(4, 1fr)', minWidth: '600px' }}
+                >
+                  {COLUMN_IDS.map((status) => (
+                    <KanbanColumn
+                      key={status}
+                      status={status}
+                      tasks={columnTasks[status]}
+                      projects={projects}
+                      onTaskClick={(task) => setSelectedTask(task)}
+                      onAddTask={(title, s) => addTask(title, s, projectFilter ?? undefined)}
+                      onStartPomodoro={(task) => pomodoroStart(task.id, task.title)}
+                    />
+                  ))}
+                </div>
+                <DragOverlay>
+                  {activeTask && (
+                    <TaskCard
+                      task={activeTask}
+                      project={activeTask.projectId ? projectMap[activeTask.projectId] : undefined}
+                      onClick={() => {}}
+                      isDragOverlay
+                    />
+                  )}
+                </DragOverlay>
+              </DndContext>
+            </div>
           </div>
+
+          {/* Right: Today's schedule — full height */}
+          <TodaySchedule onTaskClick={(task) => setSelectedTask(task)} />
         </div>
       </div>
-
-      {/* ══ Right panel — (Projects + Pomodoro) / Week (50%) ══ */}
-      <aside className="flex flex-col w-1/2 min-w-0 overflow-hidden">
-        {/* Top row: Projects (left) + Pomodoro (right) */}
-        <div className="flex flex-shrink-0 h-48 border-b border-border">
-          <div className="flex-1 min-w-0 border-r border-border overflow-hidden">
-            <MiniProjects />
-          </div>
-          <div className="w-56 flex-shrink-0 overflow-hidden">
-            <PomodoroCard />
-          </div>
-        </div>
-
-        {/* Week view — takes remaining space */}
-        <WeekPanel onTaskClick={(task) => setSelectedTask(task)} />
-      </aside>
 
       {/* Task detail drawer */}
       <TaskDrawer

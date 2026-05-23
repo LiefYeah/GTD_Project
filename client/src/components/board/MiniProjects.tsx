@@ -42,7 +42,7 @@ export function MiniProjects() {
               >
                 <div className="flex items-center gap-2 mb-1">
                   <span
-                    className="w-2 h-2 rounded-full flex-shrink-0"
+                    className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                     style={{ backgroundColor: p.color ?? '#6366f1' }}
                   />
                   <span className="text-xs font-medium truncate flex-1 group-hover:text-foreground transition-colors">
@@ -52,7 +52,7 @@ export function MiniProjects() {
                     {p.done}/{p.total}
                   </span>
                 </div>
-                <div className="ml-4 h-1 bg-muted rounded-full overflow-hidden">
+                <div className="ml-4 h-2 bg-muted rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all duration-300"
                     style={{

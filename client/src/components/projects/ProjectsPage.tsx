@@ -34,9 +34,12 @@ function ColorPicker({
           onClick={() => onChange(c)}
           className={cn(
             'w-6 h-6 rounded-full border-2 transition-transform',
-            value === c ? 'border-foreground scale-110' : 'border-transparent hover:scale-105',
+            value === c ? 'scale-110' : 'hover:scale-105',
           )}
-          style={{ backgroundColor: c }}
+          style={{
+            backgroundColor: c,
+            borderColor: value === c ? 'var(--ink)' : 'transparent',
+          }}
         />
       ))}
     </div>
@@ -62,34 +65,80 @@ function ProjectForm({ initial = EMPTY_FORM, onSave, onCancel, saving }: Project
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <div>
-        <label className="text-xs text-muted-foreground font-medium block mb-1">项目名称</label>
+        <label
+          className="text-[11px] font-medium block mb-1"
+          style={{ color: 'var(--ink-mute)', fontFamily: 'var(--font-mono)', letterSpacing: '0.04em', textTransform: 'uppercase' }}
+        >
+          项目名称
+        </label>
         <input
           autoFocus
           value={form.name}
           onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
           placeholder="项目名称"
-          className="w-full text-sm bg-background border border-border rounded-md px-2 py-1.5 outline-none focus:ring-1 focus:ring-primary/30"
+          className="w-full text-sm rounded-xl px-3 py-2 outline-none transition-all duration-150"
+          style={{
+            background: 'var(--surface)',
+            border: '1px solid var(--line)',
+            color: 'var(--ink)',
+          }}
+          onFocus={(e) => {
+            e.target.style.borderColor = 'var(--brand)';
+            e.target.style.boxShadow = '0 0 0 3px color-mix(in oklab, var(--brand) 15%, transparent)';
+          }}
+          onBlur={(e) => {
+            e.target.style.borderColor = 'var(--line)';
+            e.target.style.boxShadow = '';
+          }}
         />
       </div>
       <div>
-        <label className="text-xs text-muted-foreground font-medium block mb-1">描述（可选）</label>
+        <label
+          className="text-[11px] font-medium block mb-1"
+          style={{ color: 'var(--ink-mute)', fontFamily: 'var(--font-mono)', letterSpacing: '0.04em', textTransform: 'uppercase' }}
+        >
+          描述（可选）
+        </label>
         <textarea
           value={form.description}
           onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
           placeholder="项目描述…"
           rows={2}
-          className="w-full text-sm bg-background border border-border rounded-md px-2 py-1.5 outline-none resize-none focus:ring-1 focus:ring-primary/30"
+          className="w-full text-sm rounded-xl px-3 py-2 outline-none resize-none transition-all duration-150"
+          style={{
+            background: 'var(--surface)',
+            border: '1px solid var(--line)',
+            color: 'var(--ink)',
+          }}
+          onFocus={(e) => {
+            e.target.style.borderColor = 'var(--brand)';
+            e.target.style.boxShadow = '0 0 0 3px color-mix(in oklab, var(--brand) 15%, transparent)';
+          }}
+          onBlur={(e) => {
+            e.target.style.borderColor = 'var(--line)';
+            e.target.style.boxShadow = '';
+          }}
         />
       </div>
       <div>
-        <label className="text-xs text-muted-foreground font-medium block mb-1.5">颜色</label>
+        <label
+          className="text-[11px] font-medium block mb-1.5"
+          style={{ color: 'var(--ink-mute)', fontFamily: 'var(--font-mono)', letterSpacing: '0.04em', textTransform: 'uppercase' }}
+        >
+          颜色
+        </label>
         <ColorPicker value={form.color} onChange={(c) => setForm((f) => ({ ...f, color: c }))} />
       </div>
       <div className="flex gap-2 pt-1">
         <button
           type="submit"
           disabled={!form.name.trim() || saving}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-md hover:opacity-90 disabled:opacity-50 transition-opacity"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-xl transition-opacity"
+          style={{
+            background: 'var(--brand)',
+            color: '#fff',
+            opacity: !form.name.trim() || saving ? 0.5 : 1,
+          }}
         >
           <Check className="w-3.5 h-3.5" />
           {saving ? '保存中…' : '保存'}
@@ -97,7 +146,12 @@ function ProjectForm({ initial = EMPTY_FORM, onSave, onCancel, saving }: Project
         <button
           type="button"
           onClick={onCancel}
-          className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+          className="px-3 py-1.5 text-sm rounded-xl transition-colors duration-150"
+          style={{
+            background: 'var(--bg-2)',
+            border: '1px solid var(--line)',
+            color: 'var(--ink-soft)',
+          }}
         >
           取消
         </button>
@@ -116,55 +170,123 @@ interface ProjectCardProps {
 
 function ProjectCard({ project, taskCount, doneCount, onEdit, onArchive }: ProjectCardProps) {
   const pct = taskCount > 0 ? Math.round((doneCount / taskCount) * 100) : 0;
+  const color = project.color ?? '#6366f1';
 
   return (
-    <div className="bg-background border border-border rounded-lg p-4 flex flex-col gap-3 hover:border-muted-foreground/30 transition-colors group">
+    <div
+      className="flex flex-col gap-3 p-4 rounded-2xl group transition-all duration-150 cursor-default"
+      style={{
+        background: 'var(--surface)',
+        border: '1px solid var(--line)',
+        boxShadow: 'var(--shadow-sm)',
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-md)';
+        (e.currentTarget as HTMLElement).style.borderColor = `color-mix(in oklab, ${color} 30%, var(--line))`;
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-sm)';
+        (e.currentTarget as HTMLElement).style.borderColor = 'var(--line)';
+      }}
+    >
       <div className="flex items-start gap-3">
+        {/* Color circle */}
         <div
-          className="w-3 h-3 rounded-full mt-0.5 flex-shrink-0"
-          style={{ backgroundColor: project.color ?? '#6366f1' }}
-        />
+          className="w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center mt-0.5"
+          style={{
+            background: `color-mix(in oklab, ${color} 14%, var(--surface))`,
+            border: `1.5px solid color-mix(in oklab, ${color} 30%, var(--line))`,
+          }}
+        >
+          <div
+            className="w-3.5 h-3.5 rounded-full"
+            style={{ background: color }}
+          />
+        </div>
         <div className="flex-1 min-w-0">
-          <h3 className="font-medium text-sm truncate">{project.name}</h3>
+          <h3
+            className="font-semibold text-sm truncate"
+            style={{ color: 'var(--ink)', letterSpacing: '-0.005em' }}
+          >
+            {project.name}
+          </h3>
           {project.description && (
-            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{project.description}</p>
+            <p
+              className="text-xs mt-0.5 line-clamp-2"
+              style={{ color: 'var(--ink-mute)' }}
+            >
+              {project.description}
+            </p>
           )}
         </div>
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
           <button
             onClick={onEdit}
-            className="p-1 rounded hover:bg-muted transition-colors"
+            className="p-1.5 rounded-lg transition-colors duration-150"
             title="编辑"
+            style={{ color: 'var(--ink-mute)' }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.background = 'var(--bg-2)';
+              (e.currentTarget as HTMLElement).style.color = 'var(--ink)';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.background = '';
+              (e.currentTarget as HTMLElement).style.color = 'var(--ink-mute)';
+            }}
           >
-            <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+            <Pencil className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={onArchive}
-            className="p-1 rounded hover:bg-destructive/10 hover:text-destructive transition-colors"
+            className="p-1.5 rounded-lg transition-colors duration-150"
             title="归档"
+            style={{ color: 'var(--ink-mute)' }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.background = '#fef2f2';
+              (e.currentTarget as HTMLElement).style.color = '#dc2626';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.background = '';
+              (e.currentTarget as HTMLElement).style.color = 'var(--ink-mute)';
+            }}
           >
-            <Archive className="w-3.5 h-3.5 text-muted-foreground" />
+            <Archive className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <span>{taskCount} 个任务</span>
+      {/* Progress */}
+      <div className="flex items-center gap-2">
+        <span
+          className="text-[11px]"
+          style={{ fontFamily: 'var(--font-mono)', color: 'var(--ink-mute)' }}
+        >
+          {taskCount} 个任务
+        </span>
         {taskCount > 0 && (
           <>
-            <span className="text-border">·</span>
-            <span>{doneCount} 已完成</span>
-            <span className="text-border">·</span>
-            <div className="flex-1 bg-muted rounded-full h-1.5 overflow-hidden">
+            <span style={{ color: 'var(--line)' }}>·</span>
+            <span
+              className="text-[11px]"
+              style={{ fontFamily: 'var(--font-mono)', color: 'var(--ink-mute)' }}
+            >
+              {doneCount} 已完成
+            </span>
+            <div
+              className="flex-1 rounded-full overflow-hidden"
+              style={{ height: 4, background: 'var(--line-soft)' }}
+            >
               <div
                 className="h-full rounded-full transition-all duration-300"
-                style={{
-                  width: `${pct}%`,
-                  backgroundColor: project.color ?? '#6366f1',
-                }}
+                style={{ width: `${pct}%`, background: color }}
               />
             </div>
-            <span className="tabular-nums">{pct}%</span>
+            <span
+              className="text-[11px] tabular-nums"
+              style={{ fontFamily: 'var(--font-mono)', color: 'var(--ink-mute)' }}
+            >
+              {pct}%
+            </span>
           </>
         )}
       </div>
@@ -180,15 +302,8 @@ export function ProjectsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Sync from board store
-  useEffect(() => {
-    setLocalProjects(projects);
-  }, [projects]);
-
-  // Ensure board data is loaded
-  useEffect(() => {
-    reloadBoard();
-  }, [reloadBoard]);
+  useEffect(() => { setLocalProjects(projects); }, [projects]);
+  useEffect(() => { reloadBoard(); }, [reloadBoard]);
 
   const tasksByProject = tasks.reduce<Record<string, { total: number; done: number }>>((acc, t) => {
     if (!t.projectId) return acc;
@@ -243,35 +358,70 @@ export function ProjectsPage() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-background animate-in fade-in-0 duration-150">
+    <div className="flex flex-col h-full animate-in fade-in-0 duration-150">
       {error && (
-        <div className="fixed top-4 right-4 z-50 bg-destructive text-destructive-foreground text-sm px-4 py-2 rounded-md shadow-md flex items-center gap-3">
+        <div className="fixed top-4 right-4 z-50 text-sm px-4 py-2 rounded-xl shadow-lg flex items-center gap-3"
+          style={{ background: '#dc2626', color: '#fff' }}
+        >
           {error}
-          <button onClick={() => setError(null)} className="text-xs underline">
+          <button onClick={() => setError(null)} className="text-xs underline opacity-80">
             关闭
           </button>
         </div>
       )}
 
-      <header className="sticky top-0 z-20 bg-background/90 backdrop-blur border-b border-border px-6 py-3 flex items-center gap-4">
-        <h1 className="text-lg font-semibold">项目</h1>
+      {/* Page header */}
+      <header
+        className="sticky top-0 z-20 flex items-center gap-4 px-7 py-3.5 flex-shrink-0"
+        style={{
+          background: 'color-mix(in oklab, var(--bg) 85%, transparent)',
+          backdropFilter: 'blur(12px)',
+          borderBottom: '1px solid var(--line-soft)',
+        }}
+      >
+        <h1
+          className="text-lg font-semibold"
+          style={{ color: 'var(--ink)', letterSpacing: '-0.02em' }}
+        >
+          项目
+        </h1>
         <button
           onClick={() => { setShowCreate(true); setEditingId(null); }}
-          className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-opacity"
+          className="ml-auto flex items-center gap-1.5 px-3.5 py-1.5 text-sm rounded-xl transition-all duration-150"
+          style={{ background: 'var(--brand)', color: '#fff' }}
+          onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.opacity = '0.88')}
+          onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.opacity = '1')}
         >
           <Plus className="w-4 h-4" />
           新建项目
         </button>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-6 pb-20">
+      <div className="flex-1 overflow-y-auto p-7 pb-20">
         {/* Create form */}
         {showCreate && (
-          <div className="mb-6 bg-muted/30 border border-border rounded-lg p-4">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium">新建项目</span>
-              <button onClick={() => setShowCreate(false)}>
-                <X className="w-4 h-4 text-muted-foreground" />
+          <div
+            className="mb-6 rounded-2xl p-5"
+            style={{
+              background: 'var(--bg-2)',
+              border: '1px solid var(--line)',
+            }}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <span
+                className="text-sm font-semibold"
+                style={{ color: 'var(--ink)' }}
+              >
+                新建项目
+              </span>
+              <button
+                onClick={() => setShowCreate(false)}
+                className="p-1 rounded-lg transition-colors"
+                style={{ color: 'var(--ink-mute)' }}
+                onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = 'var(--line-soft)')}
+                onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = '')}
+              >
+                <X className="w-4 h-4" />
               </button>
             </div>
             <ProjectForm
@@ -285,19 +435,50 @@ export function ProjectsPage() {
         {/* Project grid or empty state */}
         {localProjects.length === 0 && !showCreate ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
-            <FolderOpen className="w-12 h-12 text-muted-foreground/30 mb-4" />
-            <p className="text-muted-foreground text-sm">还没有项目</p>
-            <p className="text-xs text-muted-foreground/60 mt-1">点击右上角「新建项目」开始</p>
+            <FolderOpen
+              className="w-12 h-12 mb-4"
+              style={{ color: 'var(--ink-faint)' }}
+            />
+            <p
+              className="text-sm"
+              style={{ color: 'var(--ink-mute)' }}
+            >
+              还没有项目
+            </p>
+            <p
+              className="text-xs mt-1"
+              style={{ color: 'var(--ink-faint)' }}
+            >
+              点击右上角「新建项目」开始
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {localProjects.map((p) =>
               editingId === p.id ? (
-                <div key={p.id} className="bg-muted/30 border border-border rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-medium">编辑项目</span>
-                    <button onClick={() => setEditingId(null)}>
-                      <X className="w-4 h-4 text-muted-foreground" />
+                <div
+                  key={p.id}
+                  className="rounded-2xl p-5"
+                  style={{
+                    background: 'var(--bg-2)',
+                    border: '1px solid var(--line)',
+                  }}
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <span
+                      className="text-sm font-semibold"
+                      style={{ color: 'var(--ink)' }}
+                    >
+                      编辑项目
+                    </span>
+                    <button
+                      onClick={() => setEditingId(null)}
+                      className="p-1 rounded-lg transition-colors"
+                      style={{ color: 'var(--ink-mute)' }}
+                      onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = 'var(--line-soft)')}
+                      onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = '')}
+                    >
+                      <X className="w-4 h-4" />
                     </button>
                   </div>
                   <ProjectForm

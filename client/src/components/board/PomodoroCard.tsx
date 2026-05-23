@@ -1,45 +1,118 @@
 import { useState } from 'react';
-import { CheckCircle, XCircle, Timer, Play } from 'lucide-react';
 import { usePomodoroStore } from '../../store/pomodoroStore';
 import { useBoardStore } from '../../store/boardStore';
-import { cn } from '../../lib/utils';
 
 function formatTime(s: number) {
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 }
 
-function Ring({ progress }: { progress: number }) {
-  const R = 38;
+/** 200px SVG ring with 60 tick marks and countdown arc */
+function Ring({
+  progress,
+  accent,
+  children,
+}: {
+  progress: number;
+  accent: string;
+  children?: React.ReactNode;
+}) {
+  const R = 88;
   const C = 2 * Math.PI * R;
-  const offset = C * (1 - Math.min(1, Math.max(0, progress)));
+  // countdown: progress=0 → full ring, progress=1 → empty
+  const offset = C * Math.min(1, Math.max(0, progress));
+
+  const ticks = Array.from({ length: 60 }, (_, i) => {
+    const a = (i / 60) * Math.PI * 2 - Math.PI / 2;
+    const r1 = 72;
+    const r2 = i % 5 === 0 ? 64 : 68;
+    return {
+      x1: 100 + Math.cos(a) * r1,
+      y1: 100 + Math.sin(a) * r1,
+      x2: 100 + Math.cos(a) * r2,
+      y2: 100 + Math.sin(a) * r2,
+      major: i % 5 === 0,
+    };
+  });
+
   return (
-    <svg viewBox="0 0 100 100" className="w-24 h-24 -rotate-90">
-      <circle cx="50" cy="50" r={R} fill="none" strokeWidth="6"
-        stroke="currentColor" className="text-muted" />
-      <circle cx="50" cy="50" r={R} fill="none" strokeWidth="6"
-        stroke="currentColor" strokeLinecap="round"
-        strokeDasharray={C} strokeDashoffset={offset}
-        className={cn(
-          'transition-[stroke-dashoffset] duration-1000 ease-linear',
-          progress > 0.9 ? 'text-red-500' :
-          progress > 0.75 ? 'text-orange-400' :
-          'text-primary',
-        )} />
-    </svg>
+    <div className="relative" style={{ width: 200, height: 200, flexShrink: 0 }}>
+      <svg viewBox="0 0 200 200" width={200} height={200}>
+        {/* Track */}
+        <circle cx="100" cy="100" r={R} stroke="rgba(255,255,255,0.08)" strokeWidth="10" fill="none" />
+        {/* Countdown arc */}
+        <circle
+          cx="100" cy="100" r={R}
+          stroke={accent}
+          strokeWidth="10"
+          strokeLinecap="round"
+          fill="none"
+          strokeDasharray={C}
+          strokeDashoffset={offset}
+          transform="rotate(-90 100 100)"
+          style={{ transition: 'stroke-dashoffset 1s linear' }}
+        />
+        {/* Tick marks */}
+        {ticks.map((t, i) => (
+          <line
+            key={i}
+            x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2}
+            stroke="var(--ink-mute)"
+            strokeWidth={t.major ? 1.5 : 0.8}
+            opacity={t.major ? 0.9 : 0.4}
+          />
+        ))}
+      </svg>
+      {/* Center content */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+        {children}
+      </div>
+    </div>
   );
 }
 
-export function PomodoroCard() {
-  const { status, taskTitle, secondsLeft, durationSeconds, start, complete, interrupt, error, clearError } =
-    usePomodoroStore();
+/** Today pip bars (8 slots) */
+function TodayPips({ count }: { count: number }) {
+  return (
+    <div className="flex gap-1">
+      {Array.from({ length: 8 }).map((_, i) => (
+        <span
+          key={i}
+          className="flex-1 rounded-sm"
+          style={{
+            height: 4,
+            background: i < count ? 'var(--brand)' : 'rgba(255,255,255,0.1)',
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+interface Props {
+  /** dark=true means used inside FocusHero (dark bg), false = standalone */
+  dark?: boolean;
+}
+
+export function PomodoroCard({ dark = false }: Props) {
+  const {
+    status, taskTitle, secondsLeft, durationSeconds,
+    start, complete, interrupt, error, clearError,
+  } = usePomodoroStore();
   const tasks = useBoardStore((s) => s.tasks);
 
   const [selectedTaskId, setSelectedTaskId] = useState('');
+  const [mode, setMode] = useState<'专注' | '短休' | '长休'>('专注');
+  const [round, setRound] = useState(1);
 
-  const progress = durationSeconds > 0 ? (durationSeconds - secondsLeft) / durationSeconds : 0;
   const isRunning = status === 'running';
+  const progress = durationSeconds > 0 ? (durationSeconds - secondsLeft) / durationSeconds : 0;
 
-  // Tasks available for association (active ones first)
+  // Derive today's completed pomodoro count from tasks
+  const todayPoms = Math.min(8, tasks.reduce((s, t) => s + t.completedPomodoros, 0));
+  const focusMin = tasks.reduce((s, t) => s + t.completedPomodoros, 0) * 25;
+  const focusH = Math.floor(focusMin / 60);
+  const focusM = focusMin % 60;
+
   const activeTasks = [
     ...tasks.filter((t) => t.status === 'in_progress'),
     ...tasks.filter((t) => t.status === 'planned'),
@@ -48,54 +121,172 @@ export function PomodoroCard() {
   const handleStart = () => {
     const task = activeTasks.find((t) => t.id === selectedTaskId);
     start(selectedTaskId || null, task?.title ?? '自由专注');
+    if (mode !== '专注') setMode('专注');
   };
 
+  const accent = 'var(--brand)';
+
+  // Color palette: in dark card, text uses light colors
+  const textPrimary = dark ? 'var(--bg)' : 'var(--ink)';
+  const textMuted   = dark ? 'color-mix(in oklab, var(--bg) 55%, transparent)' : 'var(--ink-mute)';
+  const textLabel   = dark ? 'color-mix(in oklab, var(--bg) 50%, transparent)' : 'var(--ink-mute)';
+  const btnBg       = dark ? 'rgba(255,255,255,0.08)' : 'hsl(var(--muted))';
+  const btnBorder   = dark ? 'rgba(255,255,255,0.06)' : 'hsl(var(--border))';
+  const btnText     = dark ? 'var(--bg)' : 'var(--ink-soft)';
+  const modeBg      = dark ? 'rgba(255,255,255,0.08)' : 'hsl(var(--muted))';
+  const modeText    = dark ? 'color-mix(in oklab, var(--bg) 70%, transparent)' : 'var(--ink-mute)';
+
   return (
-    <div className="h-full flex flex-col overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center gap-1.5 px-3 pt-2.5 pb-1">
-        <Timer className="w-3.5 h-3.5 text-muted-foreground" />
-        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">番茄钟</span>
-        {isRunning && (
-          <span className="ml-auto font-mono text-xs text-muted-foreground tabular-nums">
-            {formatTime(secondsLeft)}
+    <div className="relative flex flex-col h-full p-6 gap-4" style={{ color: textPrimary }}>
+      {/* Header: title + mode tabs */}
+      <div className="flex items-center justify-between flex-shrink-0">
+        <div className="flex items-center gap-2">
+          <span className="text-lg">🍅</span>
+          <span className="font-semibold text-[15px]">番茄钟</span>
+          <span
+            className="text-xs"
+            style={{ fontFamily: 'var(--font-mono)', color: textMuted }}
+          >
+            · 第 {round} 颗
           </span>
-        )}
+        </div>
+        {/* Mode tabs */}
+        <div
+          className="flex gap-0.5 p-0.5 rounded-lg"
+          style={{ background: modeBg }}
+        >
+          {(['专注', '短休', '长休'] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => setMode(m)}
+              className="px-3 py-1 text-xs rounded-md font-medium transition-all duration-150"
+              style={mode === m ? {
+                background: 'var(--brand)',
+                color: '#fff',
+              } : {
+                color: modeText,
+              }}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Error */}
       {error && (
-        <div className="mx-3 mb-1 text-xs text-destructive flex items-center justify-between">
+        <div className="text-xs flex items-center justify-between" style={{ color: 'hsl(var(--destructive))' }}>
           <span className="truncate">{error}</span>
           <button onClick={clearError} className="underline ml-2 flex-shrink-0">关闭</button>
         </div>
       )}
 
-      {/* ── Idle state ── */}
-      {!isRunning && (
-        <div className="flex flex-col items-center gap-2 px-3 py-2 flex-1 min-w-0">
-          {/* Ring with default time */}
-          <div className="relative flex items-center justify-center">
-            <Ring progress={0} />
-            <div className="absolute flex flex-col items-center select-none">
-              <span className="font-mono text-lg font-bold tabular-nums leading-none">
-                25
-              </span>
-              <span className="text-[10px] text-muted-foreground mt-0.5">
-                倒计时
-              </span>
+      {/* Main: ring + side */}
+      <div className="flex gap-6 items-center flex-1 min-h-0">
+        {/* Ring */}
+        {isRunning ? (
+          <Ring progress={progress} accent={accent}>
+            <div
+              className="font-mono text-4xl font-semibold leading-none"
+              style={{ fontFamily: 'var(--font-mono)', letterSpacing: '-0.04em', color: textPrimary }}
+            >
+              {formatTime(secondsLeft).split(':')[0]}
+              <span className="blink" style={{ color: 'var(--brand)' }}>:</span>
+              {formatTime(secondsLeft).split(':')[1]}
+            </div>
+            <div
+              className="text-[11px] mt-1 truncate max-w-[120px]"
+              style={{ fontFamily: 'var(--font-mono)', color: textMuted, letterSpacing: '0.02em' }}
+            >
+              {taskTitle || '自由专注'}
+            </div>
+          </Ring>
+        ) : (
+          <Ring progress={0} accent={accent}>
+            <div
+              className="font-mono text-4xl font-semibold leading-none"
+              style={{ fontFamily: 'var(--font-mono)', letterSpacing: '-0.04em', color: textPrimary }}
+            >
+              {formatTime(durationSeconds).split(':')[0]}
+              <span style={{ color: 'var(--brand)' }}>:</span>
+              {formatTime(durationSeconds).split(':')[1]}
+            </div>
+            <div
+              className="text-[11px] mt-1"
+              style={{ fontFamily: 'var(--font-mono)', color: textMuted, letterSpacing: '0.02em' }}
+            >
+              {mode === '专注' ? '25:00 专注' : mode === '短休' ? '5:00 短休' : '15:00 长休'}
+            </div>
+          </Ring>
+        )}
+
+        {/* Side: metrics + controls */}
+        <div className="flex flex-col gap-3 flex-1 min-w-0">
+          {/* Today pomodoros metric */}
+          <div>
+            <div
+              className="text-[11px] uppercase tracking-wider mb-1"
+              style={{ fontFamily: 'var(--font-mono)', color: textLabel }}
+            >
+              今日番茄
+            </div>
+            <div
+              className="text-xl font-semibold"
+              style={{ fontFamily: 'var(--font-mono)', color: textPrimary, letterSpacing: '-0.02em' }}
+            >
+              {todayPoms}{' '}
+              <span className="text-sm font-normal" style={{ color: textMuted }}>颗</span>
+            </div>
+            <div className="mt-1.5">
+              <TodayPips count={todayPoms} />
             </div>
           </div>
 
-          {/* Task picker + start */}
-          <div className="w-full flex flex-col gap-1.5 min-w-0">
+          {/* Focus duration metric */}
+          <div>
+            <div
+              className="text-[11px] uppercase tracking-wider mb-1"
+              style={{ fontFamily: 'var(--font-mono)', color: textLabel }}
+            >
+              专注时长
+            </div>
+            <div
+              className="text-xl font-semibold"
+              style={{ fontFamily: 'var(--font-mono)', color: textPrimary, letterSpacing: '-0.02em' }}
+            >
+              {focusH > 0 && <>{focusH}<span className="text-sm font-normal" style={{ color: textMuted }}>h</span>{' '}</>}
+              {focusM}<span className="text-sm font-normal" style={{ color: textMuted }}>m</span>
+            </div>
+            {/* Duration bar */}
+            <div
+              className="mt-1.5 h-1 rounded-full overflow-hidden"
+              style={{ background: dark ? 'rgba(255,255,255,0.08)' : 'hsl(var(--muted))' }}
+            >
+              <div
+                className="h-full rounded-full"
+                style={{
+                  width: `${Math.min(100, (focusMin / (8 * 25)) * 100)}%`,
+                  background: 'linear-gradient(90deg, var(--brand), color-mix(in oklab, var(--brand) 60%, #ffd76b))',
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Task selector (only when idle) */}
+          {!isRunning && (
             <select
               value={selectedTaskId}
               onChange={(e) => setSelectedTaskId(e.target.value)}
-              className="w-full text-xs bg-background border border-border rounded-md px-2 py-1.5 outline-none cursor-pointer focus:ring-1 focus:ring-primary/30"
+              className="w-full text-xs rounded-lg px-2 py-1.5 outline-none cursor-pointer"
+              style={{
+                background: btnBg,
+                border: `1px solid ${btnBorder}`,
+                color: textPrimary,
+                fontFamily: 'var(--font-sans)',
+              }}
             >
-              <option value="">自由专注（不关联任务）</option>
-              {activeTasks.length > 0 && (
+              <option value="">自由专注</option>
+              {tasks.filter((t) => t.status === 'in_progress').length > 0 && (
                 <optgroup label="进行中">
                   {tasks.filter((t) => t.status === 'in_progress').map((t) => (
                     <option key={t.id} value={t.id}>{t.title}</option>
@@ -110,59 +301,46 @@ export function PomodoroCard() {
                 </optgroup>
               )}
             </select>
-            <button
-              onClick={handleStart}
-              className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground text-xs rounded-md hover:opacity-90 transition-opacity font-medium"
-            >
-              <Play className="w-3 h-3 fill-current" />
-              开始专注
-            </button>
+          )}
+
+          {/* Controls */}
+          <div className="flex gap-2 flex-wrap">
+            {isRunning ? (
+              <>
+                <button
+                  onClick={() => complete()}
+                  className="flex-1 py-2 text-xs font-medium rounded-lg transition-all duration-150"
+                  style={{ background: 'var(--brand)', color: '#fff', border: 'none' }}
+                >
+                  完成
+                </button>
+                <button
+                  onClick={() => interrupt()}
+                  className="px-3 py-2 text-xs font-medium rounded-lg transition-all duration-150"
+                  style={{ background: btnBg, color: btnText, border: `1px solid ${btnBorder}` }}
+                >
+                  中断
+                </button>
+                <button
+                  onClick={() => { interrupt(); setRound((r) => r + 1); }}
+                  className="px-3 py-2 text-xs rounded-lg transition-all duration-150"
+                  style={{ background: 'transparent', color: textMuted, border: `1px solid ${dark ? 'rgba(255,255,255,0.12)' : btnBorder}` }}
+                >
+                  跳过
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={handleStart}
+                className="flex-1 py-2 text-xs font-semibold rounded-lg transition-all duration-150"
+                style={{ background: 'var(--brand)', color: '#fff', border: 'none' }}
+              >
+                开始专注
+              </button>
+            )}
           </div>
         </div>
-      )}
-
-      {/* ── Running state ── */}
-      {isRunning && (
-        <div className="flex flex-col items-center gap-2 px-3 py-2 flex-1 min-w-0">
-          {/* Ring with countdown */}
-          <div className="relative flex items-center justify-center">
-            <Ring progress={progress} />
-            <div className="absolute flex flex-col items-center select-none">
-              <span className={cn(
-                'font-mono text-lg font-bold tabular-nums leading-none',
-                secondsLeft <= 60 && 'text-orange-500',
-                secondsLeft <= 10 && 'text-red-500',
-              )}>
-                {formatTime(secondsLeft)}
-              </span>
-              <span className="text-[10px] text-muted-foreground mt-0.5">
-                {Math.round(progress * 100)}%
-              </span>
-            </div>
-          </div>
-
-          {/* Task name + controls */}
-          <div className="w-full flex flex-col gap-1.5 min-w-0">
-            <p className="text-xs font-medium line-clamp-2 text-foreground leading-snug text-center">
-              {taskTitle}
-            </p>
-            <div className="flex gap-1.5 flex-wrap justify-center">
-              <button
-                onClick={() => complete()}
-                className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-md transition-opacity hover:opacity-80 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-              >
-                <CheckCircle className="w-3 h-3" /> 完成
-              </button>
-              <button
-                onClick={() => interrupt()}
-                className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-md transition-opacity hover:opacity-80 bg-muted text-muted-foreground"
-              >
-                <XCircle className="w-3 h-3" /> 中断
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 }

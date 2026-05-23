@@ -36,15 +36,27 @@ interface SelectFieldProps {
 
 function SelectField({ label, description, value, options, onChange }: SelectFieldProps) {
   return (
-    <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
+    <div
+      className="flex items-center justify-between py-3.5 last:border-0"
+      style={{ borderBottom: '1px solid var(--line-soft)' }}
+    >
       <div>
-        <p className="text-sm font-medium">{label}</p>
-        {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
+        <p className="text-sm font-medium" style={{ color: 'var(--ink)' }}>{label}</p>
+        {description && (
+          <p className="text-xs mt-0.5" style={{ color: 'var(--ink-mute)' }}>{description}</p>
+        )}
       </div>
       <select
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="text-sm bg-background border border-border rounded-md px-2 py-1.5 outline-none cursor-pointer focus:ring-1 focus:ring-primary/30"
+        className="text-sm rounded-xl px-3 py-1.5 outline-none cursor-pointer transition-all duration-150"
+        style={{
+          background: 'var(--bg-2)',
+          border: '1px solid var(--line)',
+          color: 'var(--ink)',
+          fontFamily: 'var(--font-mono)',
+          fontSize: 12,
+        }}
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>
@@ -93,18 +105,46 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-background animate-in fade-in-0 duration-150">
-      <header className="sticky top-0 z-20 bg-background/90 backdrop-blur border-b border-border px-6 py-3">
-        <h1 className="text-lg font-semibold">设置</h1>
+    <div className="flex flex-col h-full animate-in fade-in-0 duration-150">
+      {/* Page header */}
+      <header
+        className="sticky top-0 z-20 flex items-center px-7 py-3.5 flex-shrink-0"
+        style={{
+          background: 'color-mix(in oklab, var(--bg) 85%, transparent)',
+          backdropFilter: 'blur(12px)',
+          borderBottom: '1px solid var(--line-soft)',
+        }}
+      >
+        <h1
+          className="text-lg font-semibold"
+          style={{ color: 'var(--ink)', letterSpacing: '-0.02em' }}
+        >
+          设置
+        </h1>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-6 pb-20 max-w-lg">
+      <div className="flex-1 overflow-y-auto p-7 pb-20" style={{ maxWidth: 560 }}>
         {/* Timer settings */}
         <section className="mb-8">
-          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          <h2
+            className="text-[11px] font-semibold mb-3"
+            style={{
+              color: 'var(--ink-mute)',
+              fontFamily: 'var(--font-mono)',
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+            }}
+          >
             计时器
           </h2>
-          <div className="bg-background border border-border rounded-lg px-4">
+          <div
+            className="rounded-2xl px-5"
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--line)',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+          >
             <SelectField
               label="专注时长"
               description="每个番茄钟的工作时间"
@@ -127,53 +167,115 @@ export function SettingsPage() {
               onChange={setLongBreak}
             />
           </div>
-          <p className="text-xs text-muted-foreground mt-2">
+          <p
+            className="text-xs mt-2"
+            style={{ color: 'var(--ink-faint)', fontFamily: 'var(--font-mono)' }}
+          >
             设置已自动保存到本地，下次启动生效。
           </p>
         </section>
 
-        {/* Keyboard shortcuts reference */}
+        {/* Keyboard shortcuts */}
         <section className="mb-8">
-          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          <h2
+            className="text-[11px] font-semibold mb-3"
+            style={{
+              color: 'var(--ink-mute)',
+              fontFamily: 'var(--font-mono)',
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+            }}
+          >
             键盘快捷键
           </h2>
-          <div className="bg-background border border-border rounded-lg px-4 divide-y divide-border">
+          <div
+            className="rounded-2xl px-5"
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--line)',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+          >
             {[
               { key: 'B', label: '看板' },
               { key: 'C', label: '日历' },
               { key: 'P', label: '项目' },
               { key: 'S', label: '设置' },
               { key: 'Esc', label: '关闭任务详情' },
-            ].map(({ key, label }) => (
-              <div key={key} className="flex items-center justify-between py-2.5">
-                <span className="text-sm">{label}</span>
-                <kbd className="text-xs font-mono bg-muted border border-border rounded px-2 py-0.5">
+            ].map(({ key, label }, i, arr) => (
+              <div
+                key={key}
+                className="flex items-center justify-between py-3"
+                style={i < arr.length - 1 ? { borderBottom: '1px solid var(--line-soft)' } : {}}
+              >
+                <span className="text-sm" style={{ color: 'var(--ink)' }}>{label}</span>
+                <kbd
+                  className="text-xs px-2 py-0.5 rounded-lg"
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    background: 'var(--bg-2)',
+                    border: '1px solid var(--line)',
+                    color: 'var(--ink-soft)',
+                    letterSpacing: '0.02em',
+                  }}
+                >
                   {key}
                 </kbd>
               </div>
             ))}
           </div>
-          <p className="text-xs text-muted-foreground mt-2">
+          <p
+            className="text-xs mt-2"
+            style={{ color: 'var(--ink-faint)', fontFamily: 'var(--font-mono)' }}
+          >
             快捷键在输入框获得焦点时不生效。
           </p>
         </section>
 
         {/* Data export */}
         <section>
-          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          <h2
+            className="text-[11px] font-semibold mb-3"
+            style={{
+              color: 'var(--ink-mute)',
+              fontFamily: 'var(--font-mono)',
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+            }}
+          >
             数据
           </h2>
-          <div className="bg-background border border-border rounded-lg px-4 py-3">
+          <div
+            className="rounded-2xl px-5 py-4"
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--line)',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+          >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium">导出数据</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <p className="text-sm font-medium" style={{ color: 'var(--ink)' }}>导出数据</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--ink-mute)' }}>
                   将所有任务、项目和番茄记录导出为 JSON 文件
                 </p>
               </div>
               <button
                 onClick={handleExport}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-border rounded-md hover:bg-muted transition-colors"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 text-sm rounded-xl transition-all duration-150"
+                style={{
+                  background: 'var(--bg-2)',
+                  border: '1px solid var(--line)',
+                  color: 'var(--ink-soft)',
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.color = 'var(--ink)';
+                  (e.currentTarget as HTMLElement).style.borderColor = 'var(--brand)';
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.color = 'var(--ink-soft)';
+                  (e.currentTarget as HTMLElement).style.borderColor = 'var(--line)';
+                }}
               >
                 <Download className="w-4 h-4" />
                 导出 JSON

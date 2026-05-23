@@ -7,7 +7,6 @@ import { MonthView } from './MonthView';
 import { WeekView } from './WeekView';
 import { DayView } from './DayView';
 import { TaskDrawer } from '../board/TaskDrawer';
-import { cn } from '../../lib/utils';
 
 export function CalendarPage() {
   const {
@@ -38,53 +37,93 @@ export function CalendarPage() {
     return format(currentDate, 'yyyy年M月d日');
   };
 
-  const viewBtn = (v: typeof view, label: string) => (
-    <button
-      key={v}
-      onClick={() => setView(v)}
-      className={cn(
-        'text-sm px-3 py-1 rounded-md transition-colors',
-        view === v
-          ? 'bg-primary text-primary-foreground'
-          : 'text-muted-foreground hover:text-foreground hover:bg-muted',
-      )}
-    >
-      {label}
-    </button>
-  );
-
   return (
     <div className="flex flex-col h-full animate-in fade-in-0 duration-150">
       {/* Calendar toolbar */}
-      <div className="flex-shrink-0 flex items-center gap-1 px-4 py-2 border-b border-border">
+      <div
+        className="flex-shrink-0 flex items-center gap-2 px-5 py-2.5"
+        style={{
+          background: 'color-mix(in oklab, var(--bg) 85%, transparent)',
+          backdropFilter: 'blur(12px)',
+          borderBottom: '1px solid var(--line-soft)',
+        }}
+      >
+        {/* Nav arrows */}
         <button
           onClick={() => navigate(-1)}
-          className="p-1 rounded hover:bg-muted transition-colors"
+          className="p-1.5 rounded-lg transition-colors"
+          style={{ color: 'var(--ink-mute)' }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-2)')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = '')}
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
         <button
           onClick={() => navigate(1)}
-          className="p-1 rounded hover:bg-muted transition-colors"
+          className="p-1.5 rounded-lg transition-colors"
+          style={{ color: 'var(--ink-mute)' }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-2)')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = '')}
         >
           <ChevronRight className="w-4 h-4" />
         </button>
-        <span className="text-sm font-semibold ml-1 min-w-[110px]">{headerLabel()}</span>
+
+        {/* Date label */}
+        <span
+          className="text-sm font-semibold ml-1 min-w-[110px]"
+          style={{ color: 'var(--ink)', letterSpacing: '-0.01em' }}
+        >
+          {headerLabel()}
+        </span>
+
+        {/* Today button */}
         <button
           onClick={goToday}
-          className="text-xs px-2 py-1 rounded border border-border hover:bg-muted transition-colors"
+          className="text-xs px-2.5 py-1 rounded-lg transition-colors"
+          style={{
+            background: 'var(--bg-2)',
+            border: '1px solid var(--line)',
+            color: 'var(--ink-soft)',
+          }}
+          onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = 'var(--ink)')}
+          onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = 'var(--ink-soft)')}
         >
           今天
         </button>
-        <div className="ml-auto flex gap-1">
-          {viewBtn('month', '月')}
-          {viewBtn('week', '周')}
-          {viewBtn('day', '日')}
+
+        {/* View switcher pill */}
+        <div
+          className="ml-auto flex gap-0.5 p-1 rounded-xl"
+          style={{ background: 'var(--bg-2)', border: '1px solid var(--line)' }}
+        >
+          {(['month', 'week', 'day'] as const).map((v, i) => {
+            const labels = ['月', '周', '日'];
+            const isActive = view === v;
+            return (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                className="px-3 py-1 text-xs font-medium rounded-lg transition-all duration-150"
+                style={isActive ? {
+                  background: 'var(--ink)',
+                  color: 'var(--bg)',
+                  boxShadow: 'var(--shadow-sm)',
+                } : {
+                  color: 'var(--ink-mute)',
+                }}
+              >
+                {labels[i]}
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {isLoading && tasks.length === 0 ? (
-        <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
+        <div
+          className="flex-1 flex items-center justify-center text-sm"
+          style={{ color: 'var(--ink-mute)' }}
+        >
           加载中…
         </div>
       ) : view === 'month' ? (
@@ -92,6 +131,7 @@ export function CalendarPage() {
           currentDate={currentDate}
           tasks={tasks}
           pomodoros={pomodoros}
+          projects={projects}
           onTaskClick={setSelectedTask}
           onDayClick={(date) => { setCurrentDate(date); setView('day'); }}
         />
@@ -100,6 +140,7 @@ export function CalendarPage() {
           currentDate={currentDate}
           tasks={tasks}
           pomodoros={pomodoros}
+          projects={projects}
           onTaskClick={setSelectedTask}
         />
       ) : (
@@ -107,6 +148,7 @@ export function CalendarPage() {
           currentDate={currentDate}
           tasks={tasks}
           pomodoros={pomodoros}
+          projects={projects}
           onTaskClick={setSelectedTask}
         />
       )}
