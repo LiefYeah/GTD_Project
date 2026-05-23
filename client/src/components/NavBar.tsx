@@ -113,37 +113,8 @@ export function NavBar() {
         })}
       </nav>
 
-      {/* Right: Search + theme toggle + avatar */}
+      {/* Right: theme toggle + avatar */}
       <div className="flex items-center gap-2">
-        {/* Search box */}
-        <div
-          className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl border min-w-[220px]"
-          style={{
-            background: 'var(--surface)',
-            borderColor: 'var(--line)',
-            color: 'var(--ink-mute)',
-          }}
-        >
-          <span className="text-base leading-none select-none">⌕</span>
-          <span
-            className="flex-1 text-sm select-none"
-            style={{ color: 'var(--ink-faint)', fontFamily: 'var(--font-sans)' }}
-          >
-            搜索任务、项目…
-          </span>
-          <kbd
-            className="text-[11px] px-1.5 py-0.5 rounded border"
-            style={{
-              fontFamily: 'var(--font-mono)',
-              background: 'var(--bg-2)',
-              borderColor: 'var(--line)',
-              color: 'var(--ink-mute)',
-            }}
-          >
-            ⌘K
-          </kbd>
-        </div>
-
         {/* Theme toggle */}
         <button
           onClick={toggleTheme}

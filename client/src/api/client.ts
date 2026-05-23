@@ -99,3 +99,17 @@ export const archiveProject = (id: string) =>
   req<{ success: boolean }>(`/projects/${id}`, { method: 'DELETE' });
 
 export const getAllPomodoros = () => req<Pomodoro[]>('/pomodoros');
+
+export const getTodayPomodoros = () => req<Pomodoro[]>('/pomodoros/today');
+
+export interface ImportResult {
+  imported: { projects: number; tasks: number; pomodoros: number };
+  skipped: { projects: number; tasks: number; pomodoros: number };
+}
+
+export const importData = (data: unknown) =>
+  req<ImportResult>('/import', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });

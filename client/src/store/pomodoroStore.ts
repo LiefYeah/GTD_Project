@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import * as api from '../api/client';
 import { useBoardStore } from './boardStore';
 import { useSettingsStore } from './settingsStore';
+import type { Pomodoro } from '../types';
 
 type TimerStatus = 'idle' | 'running';
 
@@ -52,6 +53,7 @@ interface PomodoroState {
   secondsLeft: number;
   status: TimerStatus;
   error: string | null;
+  todayPomodoros: Pomodoro[];
 
   /** taskId=null starts a free (no-task) pomodoro */
   start: (taskId: string | null, taskTitle: string, durationSeconds?: number) => Promise<void>;
@@ -59,6 +61,7 @@ interface PomodoroState {
   interrupt: () => Promise<void>;
   tick: () => void;
   clearError: () => void;
+  loadToday: () => Promise<void>;
 }
 
 const restored = readSession();
@@ -71,6 +74,7 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
   secondsLeft: 1500,
   status: 'idle',
   error: null,
+  todayPomodoros: [],
   ...restored,
 
   start: async (taskId, taskTitle, durationSeconds?) => {
@@ -102,8 +106,8 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
     set({ status: 'idle', pomId: null, taskId: null, taskTitle: '' });
     try {
       await api.completePomodoro(pomId);
-      // Only reload board task counts when there was an associated task
       if (taskId) useBoardStore.getState().load();
+      await get().loadToday();
     } catch (e) {
       set({ error: String(e) });
     }
@@ -126,4 +130,13 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
   },
 
   clearError: () => set({ error: null }),
+
+  loadToday: async () => {
+    try {
+      const todayPomodoros = await api.getTodayPomodoros();
+      set({ todayPomodoros });
+    } catch {
+      // non-critical: silently ignore
+    }
+  },
 }));

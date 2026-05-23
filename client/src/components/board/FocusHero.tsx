@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { format, isToday } from 'date-fns';
 import { useBoardStore } from '../../store/boardStore';
+import { usePomodoroStore } from '../../store/pomodoroStore';
 import { useNow } from '../../hooks/useNow';
 import { PomodoroCard } from './PomodoroCard';
 
@@ -65,6 +66,7 @@ function StatCard({ label, value, sub, accent, glyph }: StatCardProps) {
 
 export function FocusHero() {
   const { tasks } = useBoardStore();
+  const { todayPomodoros } = usePomodoroStore();
   const now = useNow();
 
   const dateLabel = `${WEEKDAY_ZH[now.getDay()]} · ${format(now, 'M月d日')}`;
@@ -76,8 +78,9 @@ export function FocusHero() {
       (t) => t.status === 'done' && t.completedAt && isToday(new Date(t.completedAt)),
     ).length;
     const totalToday = inProgress + doneToday;
-    const totalPoms = tasks.reduce((s, t) => s + t.completedPomodoros, 0);
-    const focusMin = totalPoms * 25;
+
+    const todayPomCount = todayPomodoros.length;
+    const focusMin = Math.round(todayPomodoros.reduce((s, p) => s + p.durationSeconds, 0) / 60);
     const focusH = Math.floor(focusMin / 60);
     const focusM = focusMin % 60;
     const focusStr = focusH > 0 ? `${focusH}h${focusM}m` : `${focusM}m`;
@@ -85,11 +88,12 @@ export function FocusHero() {
     return {
       tasks: String(inProgress),
       tasksSub: `共 ${totalToday} · ${doneToday} 已完成`,
-      poms: String(totalPoms),
+      poms: String(todayPomCount),
+      doneToday,
       focusStr,
-      focusSub: totalPoms > 0 ? '今日累计专注时长' : '暂无番茄记录',
+      focusSub: todayPomCount > 0 ? '今日累计专注时长' : '暂无番茄记录',
     };
-  }, [tasks, now]);
+  }, [tasks, todayPomodoros, now]);
 
   return (
     <section
@@ -187,8 +191,8 @@ export function FocusHero() {
           />
           <StatCard
             label="已完成"
-            value={String(tasks.filter((t) => t.status === 'done').length)}
-            sub="全部完成任务"
+            value={String(stats.doneToday)}
+            sub="今日完成任务"
             accent="var(--c-doing)"
             glyph="✓"
           />

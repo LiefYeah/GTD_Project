@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePomodoroStore } from '../../store/pomodoroStore';
 import { useBoardStore } from '../../store/boardStore';
 
@@ -97,6 +97,7 @@ export function PomodoroCard({ dark = false }: Props) {
   const {
     status, taskTitle, secondsLeft, durationSeconds,
     start, complete, interrupt, error, clearError,
+    todayPomodoros, loadToday,
   } = usePomodoroStore();
   const tasks = useBoardStore((s) => s.tasks);
 
@@ -104,12 +105,14 @@ export function PomodoroCard({ dark = false }: Props) {
   const [mode, setMode] = useState<'专注' | '短休' | '长休'>('专注');
   const [round, setRound] = useState(1);
 
+  useEffect(() => { loadToday(); }, []);
+
   const isRunning = status === 'running';
   const progress = durationSeconds > 0 ? (durationSeconds - secondsLeft) / durationSeconds : 0;
 
-  // Derive today's completed pomodoro count from tasks
-  const todayPoms = Math.min(8, tasks.reduce((s, t) => s + t.completedPomodoros, 0));
-  const focusMin = tasks.reduce((s, t) => s + t.completedPomodoros, 0) * 25;
+  const todayPomCount = todayPomodoros.length;
+  const todayPoms = Math.min(8, todayPomCount);
+  const focusMin = Math.round(todayPomodoros.reduce((s, p) => s + p.durationSeconds, 0) / 60);
   const focusH = Math.floor(focusMin / 60);
   const focusM = focusMin % 60;
 
@@ -234,7 +237,7 @@ export function PomodoroCard({ dark = false }: Props) {
               className="text-xl font-semibold"
               style={{ fontFamily: 'var(--font-mono)', color: textPrimary, letterSpacing: '-0.02em' }}
             >
-              {todayPoms}{' '}
+              {todayPomCount}{' '}
               <span className="text-sm font-normal" style={{ color: textMuted }}>颗</span>
             </div>
             <div className="mt-1.5">

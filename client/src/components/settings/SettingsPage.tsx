@@ -1,6 +1,8 @@
-import { Download } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Download, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 import { useSettingsStore } from '../../store/settingsStore';
+import { useBoardStore } from '../../store/boardStore';
 import * as api from '../../api/client';
 
 const POMODORO_OPTIONS = [
@@ -68,11 +70,21 @@ function SelectField({ label, description, value, options, onChange }: SelectFie
   );
 }
 
+type ImportState =
+  | { phase: 'idle' }
+  | { phase: 'loading' }
+  | { phase: 'success'; imported: api.ImportResult['imported']; skipped: api.ImportResult['skipped'] }
+  | { phase: 'error'; message: string };
+
 export function SettingsPage() {
   const {
     pomodoroDuration, shortBreak, longBreak,
     setPomodoroDuration, setShortBreak, setLongBreak,
   } = useSettingsStore();
+  const { load: reloadBoard } = useBoardStore();
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importState, setImportState] = useState<ImportState>({ phase: 'idle' });
 
   const handleExport = async () => {
     try {
@@ -101,6 +113,31 @@ export function SettingsPage() {
       URL.revokeObjectURL(url);
     } catch (e) {
       console.error('Export failed', e);
+    }
+  };
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+
+    setImportState({ phase: 'loading' });
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+
+      if (!data || typeof data !== 'object' || !Array.isArray(data.tasks)) {
+        setImportState({ phase: 'error', message: '文件格式不正确，请选择由本应用导出的 JSON 文件' });
+        return;
+      }
+
+      const result = await api.importData(data);
+      setImportState({ phase: 'success', imported: result.imported, skipped: result.skipped });
+      // Reload board so newly imported tasks/projects are visible immediately
+      reloadBoard();
+    } catch (e) {
+      const msg = e instanceof SyntaxError ? '文件不是有效的 JSON 格式' : String(e);
+      setImportState({ phase: 'error', message: msg });
     }
   };
 
@@ -232,7 +269,7 @@ export function SettingsPage() {
           </p>
         </section>
 
-        {/* Data export */}
+        {/* Data import / export */}
         <section>
           <h2
             className="text-[11px] font-semibold mb-3"
@@ -246,14 +283,18 @@ export function SettingsPage() {
             数据
           </h2>
           <div
-            className="rounded-2xl px-5 py-4"
+            className="rounded-2xl px-5"
             style={{
               background: 'var(--surface)',
               border: '1px solid var(--line)',
               boxShadow: 'var(--shadow-sm)',
             }}
           >
-            <div className="flex items-center justify-between">
+            {/* Export */}
+            <div
+              className="flex items-center justify-between py-4"
+              style={{ borderBottom: '1px solid var(--line-soft)' }}
+            >
               <div>
                 <p className="text-sm font-medium" style={{ color: 'var(--ink)' }}>导出数据</p>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--ink-mute)' }}>
@@ -281,7 +322,92 @@ export function SettingsPage() {
                 导出 JSON
               </button>
             </div>
+
+            {/* Import */}
+            <div className="py-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium" style={{ color: 'var(--ink)' }}>导入数据</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--ink-mute)' }}>
+                    增量导入，已存在的记录自动跳过，不会产生重复
+                  </p>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".json,application/json"
+                  className="hidden"
+                  onChange={handleImportFile}
+                />
+                <button
+                  onClick={() => { setImportState({ phase: 'idle' }); fileInputRef.current?.click(); }}
+                  disabled={importState.phase === 'loading'}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 text-sm rounded-xl transition-all duration-150"
+                  style={{
+                    background: 'var(--bg-2)',
+                    border: '1px solid var(--line)',
+                    color: importState.phase === 'loading' ? 'var(--ink-faint)' : 'var(--ink-soft)',
+                    cursor: importState.phase === 'loading' ? 'not-allowed' : 'pointer',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (importState.phase !== 'loading') {
+                      (e.currentTarget as HTMLElement).style.color = 'var(--ink)';
+                      (e.currentTarget as HTMLElement).style.borderColor = 'var(--brand)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.color = 'var(--ink-soft)';
+                    (e.currentTarget as HTMLElement).style.borderColor = 'var(--line)';
+                  }}
+                >
+                  <Upload className="w-4 h-4" />
+                  {importState.phase === 'loading' ? '导入中…' : '选择文件'}
+                </button>
+              </div>
+
+              {/* Import result feedback */}
+              {importState.phase === 'success' && (
+                <div
+                  className="mt-3 px-3 py-2.5 rounded-xl text-xs"
+                  style={{
+                    background: 'color-mix(in oklab, var(--c-done) 12%, var(--surface))',
+                    border: '1px solid color-mix(in oklab, var(--c-done) 30%, transparent)',
+                    color: 'var(--ink)',
+                  }}
+                >
+                  <span style={{ color: 'var(--c-done)', fontWeight: 600 }}>导入成功</span>
+                  <span className="ml-1.5" style={{ color: 'var(--ink-soft)' }}>
+                    新增 项目 {importState.imported.projects} · 任务 {importState.imported.tasks} · 番茄 {importState.imported.pomodoros}
+                    {(importState.skipped.projects + importState.skipped.tasks + importState.skipped.pomodoros) > 0 && (
+                      <>
+                        {' '}· 跳过重复 {importState.skipped.projects + importState.skipped.tasks + importState.skipped.pomodoros} 条
+                      </>
+                    )}
+                  </span>
+                </div>
+              )}
+              {importState.phase === 'error' && (
+                <div
+                  className="mt-3 px-3 py-2.5 rounded-xl text-xs"
+                  style={{
+                    background: 'color-mix(in oklab, var(--brand) 10%, var(--surface))',
+                    border: '1px solid color-mix(in oklab, var(--brand) 30%, transparent)',
+                    color: 'var(--ink)',
+                  }}
+                >
+                  <span style={{ color: 'var(--brand)', fontWeight: 600 }}>导入失败</span>
+                  <span className="ml-1.5" style={{ color: 'var(--ink-soft)' }}>{importState.message}</span>
+                </div>
+              )}
+            </div>
           </div>
+
+          <p
+            className="text-xs mt-2"
+            style={{ color: 'var(--ink-faint)', fontFamily: 'var(--font-mono)' }}
+          >
+            导入文件必须是由本应用导出的 JSON 格式，相同 ID 的记录会自动跳过。
+          </p>
         </section>
       </div>
     </div>

@@ -82,9 +82,17 @@ export const useBoardStore = create<BoardState>((set, get) => ({
   },
 
   moveTask: async (id, newStatus, newSortOrder) => {
+    const now = Date.now();
     set((s) => ({
       tasks: s.tasks.map((t) =>
-        t.id === id ? { ...t, status: newStatus, sortOrder: newSortOrder } : t,
+        t.id === id
+          ? {
+              ...t,
+              status: newStatus,
+              sortOrder: newSortOrder,
+              completedAt: newStatus === 'done' ? now : null,
+            }
+          : t,
       ),
     }));
     try {

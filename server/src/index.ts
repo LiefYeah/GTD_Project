@@ -6,6 +6,7 @@ import projectsRouter from './routes/projects';
 import tasksRouter from './routes/tasks';
 import pomodorosRouter from './routes/pomodoros';
 import calendarRouter from './routes/calendar';
+import importRouter from './routes/import';
 
 const app = express();
 const PORT = Number(process.env.PORT ?? 3001);
@@ -21,6 +22,7 @@ app.use('/api/projects', projectsRouter);
 app.use('/api/tasks', tasksRouter);
 app.use('/api/pomodoros', pomodorosRouter);
 app.use('/api/calendar', calendarRouter);
+app.use('/api/import', importRouter);
 
 // Error handler MUST be last — 4-arg signature is what Express uses to identify error middleware
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
