@@ -172,6 +172,7 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
       phase: 'awaitingBreak', breakCountdown: 5,
       cycleCount: newCycleCount,
       startedAt: null,
+      breakStartedAt: null,   // add this
     });
     try {
       await api.completePomodoro(pomId);
@@ -205,6 +206,7 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
       const elapsed = Math.floor((now - breakStartedAt) / 1000);
       set({ secondsLeft: Math.max(0, durationSeconds - elapsed) });
     } else {
+      // safety fallback: should not reach here when status is 'running'
       set((s) => ({ secondsLeft: Math.max(0, s.secondsLeft - 1) }));
     }
   },
