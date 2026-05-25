@@ -53,10 +53,20 @@ export function BoardPage() {
     ? tasks.filter((t) => t.projectId === projectFilter)
     : tasks;
 
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const todayTs = todayStart.getTime();
+
   const columnTasks = COLUMN_IDS.reduce<Record<TaskStatus, Task[]>>((acc, col) => {
-    acc[col] = visibleTasks
-      .filter((t) => t.status === col)
-      .sort((a, b) => a.sortOrder - b.sortOrder);
+    let colTasks = visibleTasks.filter((t) => t.status === col);
+    if (col === 'done') {
+      colTasks = colTasks.filter(
+        (t) =>
+          (t.completedAt !== null && t.completedAt >= todayTs) ||
+          (t.dueDate !== null && t.dueDate >= todayTs),
+      );
+    }
+    acc[col] = colTasks.sort((a, b) => a.sortOrder - b.sortOrder);
     return acc;
   }, {} as Record<TaskStatus, Task[]>);
 
@@ -180,7 +190,7 @@ export function BoardPage() {
                   }}
                 >
                   {tasks.filter((t) => t.status === 'in_progress').length} 个任务进行中
-                  · {tasks.filter((t) => t.status === 'done').length} 个已完成
+                  · {columnTasks['done'].length} 个今日完成
                 </span>
               </div>
 
