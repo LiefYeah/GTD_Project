@@ -6,7 +6,6 @@ function formatTime(s: number) {
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 }
 
-/** 200px SVG ring with 60 tick marks and countdown arc */
 function Ring({
   progress,
   accent,
@@ -37,9 +36,7 @@ function Ring({
   return (
     <div className="relative" style={{ width: 200, height: 200, flexShrink: 0 }}>
       <svg viewBox="0 0 200 200" width={200} height={200}>
-        {/* Track */}
         <circle cx="100" cy="100" r={R} stroke="rgba(255,255,255,0.08)" strokeWidth="10" fill="none" />
-        {/* Countdown arc */}
         <circle
           cx="100" cy="100" r={R}
           stroke={accent}
@@ -51,7 +48,6 @@ function Ring({
           transform="rotate(-90 100 100)"
           style={{ transition: 'stroke-dashoffset 1s linear' }}
         />
-        {/* Tick marks */}
         {ticks.map((t, i) => (
           <line
             key={i}
@@ -62,7 +58,6 @@ function Ring({
           />
         ))}
       </svg>
-      {/* Center content */}
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
         {children}
       </div>
@@ -70,7 +65,6 @@ function Ring({
   );
 }
 
-/** Today pip bars (8 slots) */
 function TodayPips({ count }: { count: number }) {
   return (
     <div className="flex gap-1">
@@ -78,10 +72,7 @@ function TodayPips({ count }: { count: number }) {
         <span
           key={i}
           className="flex-1 rounded-sm"
-          style={{
-            height: 4,
-            background: i < count ? 'var(--brand)' : 'rgba(255,255,255,0.1)',
-          }}
+          style={{ height: 4, background: i < count ? 'var(--brand)' : 'rgba(255,255,255,0.1)' }}
         />
       ))}
     </div>
@@ -89,47 +80,43 @@ function TodayPips({ count }: { count: number }) {
 }
 
 interface Props {
-  /** dark=true means used inside FocusHero (dark bg), false = standalone */
   dark?: boolean;
 }
+
+const BREAK_ACCENT = '#52A8FF';
 
 export function PomodoroCard({ dark = false }: Props) {
   const {
     status, taskTitle, secondsLeft, durationSeconds,
-    start, complete, interrupt, error, clearError,
+    start, complete, interrupt,
+    startBreak, skipBreak, startNextFocus,
+    phase, cycleCount, breakCountdown,
+    error, clearError,
     todayPomodoros, loadToday,
   } = usePomodoroStore();
   const tasks = useBoardStore((s) => s.tasks);
-
   const [selectedTaskId, setSelectedTaskId] = useState('');
-  const [mode, setMode] = useState<'专注' | '短休' | '长休'>('专注');
-  const [round, setRound] = useState(1);
 
   useEffect(() => { loadToday(); }, []);
 
   const isRunning = status === 'running';
-  const progress = durationSeconds > 0 ? (durationSeconds - secondsLeft) / durationSeconds : 0;
+  const isBreakPhase = phase === 'shortBreak' || phase === 'longBreak';
+  const accent = (isBreakPhase || phase === 'awaitingBreak' || phase === 'awaitingFocus')
+    ? BREAK_ACCENT
+    : 'var(--brand)';
 
+  const progress = durationSeconds > 0 ? (durationSeconds - secondsLeft) / durationSeconds : 0;
   const todayPomCount = todayPomodoros.length;
   const todayPoms = Math.min(8, todayPomCount);
   const focusMin = Math.round(todayPomodoros.reduce((s, p) => s + p.durationSeconds, 0) / 60);
   const focusH = Math.floor(focusMin / 60);
   const focusM = focusMin % 60;
 
-  const activeTasks = [
-    ...tasks.filter((t) => t.status === 'in_progress'),
-    ...tasks.filter((t) => t.status === 'planned'),
-  ];
-
   const handleStart = () => {
-    const task = activeTasks.find((t) => t.id === selectedTaskId);
+    const task = tasks.find((t) => t.id === selectedTaskId);
     start(selectedTaskId || null, task?.title ?? '自由专注');
-    if (mode !== '专注') setMode('专注');
   };
 
-  const accent = 'var(--brand)';
-
-  // Color palette: in dark card, text uses light colors
   const textPrimary = dark ? 'var(--bg)' : 'var(--ink)';
   const textMuted   = dark ? 'color-mix(in oklab, var(--bg) 55%, transparent)' : 'var(--ink-mute)';
   const textLabel   = dark ? 'color-mix(in oklab, var(--bg) 50%, transparent)' : 'var(--ink-mute)';
@@ -139,39 +126,38 @@ export function PomodoroCard({ dark = false }: Props) {
   const modeBg      = dark ? 'rgba(255,255,255,0.08)' : 'hsl(var(--muted))';
   const modeText    = dark ? 'color-mix(in oklab, var(--bg) 70%, transparent)' : 'var(--ink-mute)';
 
+  // "第 N 颗" — cycleCount is completed pomodoros this cycle, so current is +1
+  const roundDisplay = cycleCount + 1;
+
+  // Readonly mode tab follows phase
+  const activeTab =
+    phase === 'shortBreak' || phase === 'awaitingFocus' ? '短休'
+    : phase === 'longBreak' ? '长休'
+    : '专注';
+
   return (
     <div className="relative flex flex-col h-full p-6 gap-4" style={{ color: textPrimary }}>
-      {/* Header: title + mode tabs */}
+      {/* Header */}
       <div className="flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-2">
           <span className="text-lg">🍅</span>
           <span className="font-semibold text-[15px]">番茄钟</span>
-          <span
-            className="text-xs"
-            style={{ fontFamily: 'var(--font-mono)', color: textMuted }}
-          >
-            · 第 {round} 颗
+          <span className="text-xs" style={{ fontFamily: 'var(--font-mono)', color: textMuted }}>
+            · 第 {roundDisplay} 颗
           </span>
         </div>
-        {/* Mode tabs */}
-        <div
-          className="flex gap-0.5 p-0.5 rounded-lg"
-          style={{ background: modeBg }}
-        >
+        {/* Mode tabs: readonly, follows phase */}
+        <div className="flex gap-0.5 p-0.5 rounded-lg" style={{ background: modeBg }}>
           {(['专注', '短休', '长休'] as const).map((m) => (
-            <button
+            <span
               key={m}
-              onClick={() => setMode(m)}
-              className="px-3 py-1 text-xs rounded-md font-medium transition-all duration-150"
-              style={mode === m ? {
-                background: 'var(--brand)',
-                color: '#fff',
-              } : {
-                color: modeText,
-              }}
+              className="px-3 py-1 text-xs rounded-md font-medium"
+              style={m === activeTab
+                ? { background: accent, color: '#fff' }
+                : { color: modeText }}
             >
               {m}
-            </button>
+            </span>
           ))}
         </div>
       </div>
@@ -184,87 +170,106 @@ export function PomodoroCard({ dark = false }: Props) {
         </div>
       )}
 
-      {/* Main: ring + side */}
+      {/* Main */}
       <div className="flex gap-6 items-center flex-1 min-h-0">
-        {/* Ring */}
-        {isRunning ? (
-          <Ring progress={progress} accent={accent}>
-            <div
-              className="font-mono text-4xl font-semibold leading-none"
-              style={{ fontFamily: 'var(--font-mono)', letterSpacing: '-0.04em', color: textPrimary }}
-            >
+        {/* Ring — one branch per phase */}
+        {phase === 'focus' && isRunning && (
+          <Ring progress={progress} accent="var(--brand)">
+            <div className="font-mono text-4xl font-semibold leading-none"
+              style={{ fontFamily: 'var(--font-mono)', letterSpacing: '-0.04em', color: textPrimary }}>
               {formatTime(secondsLeft).split(':')[0]}
               <span className="blink" style={{ color: 'var(--brand)' }}>:</span>
               {formatTime(secondsLeft).split(':')[1]}
             </div>
-            <div
-              className="text-[11px] mt-1 truncate max-w-[120px]"
-              style={{ fontFamily: 'var(--font-mono)', color: textMuted, letterSpacing: '0.02em' }}
-            >
+            <div className="text-[11px] mt-1 truncate max-w-[120px]"
+              style={{ fontFamily: 'var(--font-mono)', color: textMuted, letterSpacing: '0.02em' }}>
               {taskTitle || '自由专注'}
-            </div>
-          </Ring>
-        ) : (
-          <Ring progress={0} accent={accent}>
-            <div
-              className="font-mono text-4xl font-semibold leading-none"
-              style={{ fontFamily: 'var(--font-mono)', letterSpacing: '-0.04em', color: textPrimary }}
-            >
-              {formatTime(durationSeconds).split(':')[0]}
-              <span style={{ color: 'var(--brand)' }}>:</span>
-              {formatTime(durationSeconds).split(':')[1]}
-            </div>
-            <div
-              className="text-[11px] mt-1"
-              style={{ fontFamily: 'var(--font-mono)', color: textMuted, letterSpacing: '0.02em' }}
-            >
-              {mode === '专注' ? '25:00 专注' : mode === '短休' ? '5:00 短休' : '15:00 长休'}
             </div>
           </Ring>
         )}
 
-        {/* Side: metrics + controls */}
+        {phase === 'focus' && !isRunning && (
+          <Ring progress={0} accent="var(--brand)">
+            <div className="font-mono text-4xl font-semibold leading-none"
+              style={{ fontFamily: 'var(--font-mono)', letterSpacing: '-0.04em', color: textPrimary }}>
+              {formatTime(durationSeconds).split(':')[0]}
+              <span style={{ color: 'var(--brand)' }}>:</span>
+              {formatTime(durationSeconds).split(':')[1]}
+            </div>
+            <div className="text-[11px] mt-1"
+              style={{ fontFamily: 'var(--font-mono)', color: textMuted, letterSpacing: '0.02em' }}>
+              25:00 专注
+            </div>
+          </Ring>
+        )}
+
+        {phase === 'awaitingBreak' && (
+          <Ring progress={0} accent={BREAK_ACCENT}>
+            <div className="font-mono text-5xl font-bold leading-none"
+              style={{ fontFamily: 'var(--font-mono)', color: BREAK_ACCENT }}>
+              {breakCountdown}
+            </div>
+            <div className="text-[11px] mt-1.5"
+              style={{ fontFamily: 'var(--font-mono)', color: textMuted }}>
+              即将休息...
+            </div>
+          </Ring>
+        )}
+
+        {(phase === 'shortBreak' || phase === 'longBreak') && (
+          <Ring progress={progress} accent={BREAK_ACCENT}>
+            <div className="font-mono text-4xl font-semibold leading-none"
+              style={{ fontFamily: 'var(--font-mono)', letterSpacing: '-0.04em', color: textPrimary }}>
+              {formatTime(secondsLeft).split(':')[0]}
+              <span style={{ color: BREAK_ACCENT }}>:</span>
+              {formatTime(secondsLeft).split(':')[1]}
+            </div>
+            <div className="text-[11px] mt-1"
+              style={{ fontFamily: 'var(--font-mono)', color: textMuted }}>
+              {phase === 'longBreak' ? '长休中' : '短休中'}
+            </div>
+          </Ring>
+        )}
+
+        {phase === 'awaitingFocus' && (
+          <Ring progress={1} accent={BREAK_ACCENT}>
+            <div className="text-2xl mb-1">☕</div>
+            <div className="text-[11px]" style={{ fontFamily: 'var(--font-mono)', color: textMuted }}>
+              休息结束
+            </div>
+            <div className="text-[11px] mt-0.5" style={{ fontFamily: 'var(--font-mono)', color: textMuted }}>
+              准备好了吗？
+            </div>
+          </Ring>
+        )}
+
+        {/* Side metrics + controls */}
         <div className="flex flex-col gap-3 flex-1 min-w-0">
-          {/* Today pomodoros metric */}
           <div>
-            <div
-              className="text-[11px] uppercase tracking-wider mb-1"
-              style={{ fontFamily: 'var(--font-mono)', color: textLabel }}
-            >
+            <div className="text-[11px] uppercase tracking-wider mb-1"
+              style={{ fontFamily: 'var(--font-mono)', color: textLabel }}>
               今日番茄
             </div>
-            <div
-              className="text-xl font-semibold"
-              style={{ fontFamily: 'var(--font-mono)', color: textPrimary, letterSpacing: '-0.02em' }}
-            >
+            <div className="text-xl font-semibold"
+              style={{ fontFamily: 'var(--font-mono)', color: textPrimary, letterSpacing: '-0.02em' }}>
               {todayPomCount}{' '}
               <span className="text-sm font-normal" style={{ color: textMuted }}>颗</span>
             </div>
-            <div className="mt-1.5">
-              <TodayPips count={todayPoms} />
-            </div>
+            <div className="mt-1.5"><TodayPips count={todayPoms} /></div>
           </div>
 
-          {/* Focus duration metric */}
           <div>
-            <div
-              className="text-[11px] uppercase tracking-wider mb-1"
-              style={{ fontFamily: 'var(--font-mono)', color: textLabel }}
-            >
+            <div className="text-[11px] uppercase tracking-wider mb-1"
+              style={{ fontFamily: 'var(--font-mono)', color: textLabel }}>
               专注时长
             </div>
-            <div
-              className="text-xl font-semibold"
-              style={{ fontFamily: 'var(--font-mono)', color: textPrimary, letterSpacing: '-0.02em' }}
-            >
+            <div className="text-xl font-semibold"
+              style={{ fontFamily: 'var(--font-mono)', color: textPrimary, letterSpacing: '-0.02em' }}>
               {focusH > 0 && <>{focusH}<span className="text-sm font-normal" style={{ color: textMuted }}>h</span>{' '}</>}
               {focusM}<span className="text-sm font-normal" style={{ color: textMuted }}>m</span>
             </div>
-            {/* Duration bar */}
-            <div
-              className="mt-1.5 h-1 rounded-full overflow-hidden"
-              style={{ background: dark ? 'rgba(255,255,255,0.08)' : 'hsl(var(--muted))' }}
-            >
+            <div className="mt-1.5 h-1 rounded-full overflow-hidden"
+              style={{ background: dark ? 'rgba(255,255,255,0.08)' : 'hsl(var(--muted))' }}>
               <div
                 className="h-full rounded-full"
                 style={{
@@ -275,18 +280,13 @@ export function PomodoroCard({ dark = false }: Props) {
             </div>
           </div>
 
-          {/* Task selector (only when idle) */}
-          {!isRunning && (
+          {/* Task selector: only on focus idle */}
+          {phase === 'focus' && !isRunning && (
             <select
               value={selectedTaskId}
               onChange={(e) => setSelectedTaskId(e.target.value)}
               className="w-full text-xs rounded-lg px-2 py-1.5 outline-none cursor-pointer"
-              style={{
-                background: btnBg,
-                border: `1px solid ${btnBorder}`,
-                color: textPrimary,
-                fontFamily: 'var(--font-sans)',
-              }}
+              style={{ background: btnBg, border: `1px solid ${btnBorder}`, color: textPrimary }}
             >
               <option value="">自由专注</option>
               {tasks.filter((t) => t.status === 'in_progress').length > 0 && (
@@ -308,7 +308,7 @@ export function PomodoroCard({ dark = false }: Props) {
 
           {/* Controls */}
           <div className="flex gap-2 flex-wrap">
-            {isRunning ? (
+            {phase === 'focus' && isRunning && (
               <>
                 <button
                   onClick={() => complete()}
@@ -324,17 +324,51 @@ export function PomodoroCard({ dark = false }: Props) {
                 >
                   中断
                 </button>
+              </>
+            )}
+
+            {phase === 'focus' && !isRunning && (
+              <button
+                onClick={handleStart}
+                className="flex-1 py-2 text-xs font-semibold rounded-lg transition-all duration-150"
+                style={{ background: 'var(--brand)', color: '#fff', border: 'none' }}
+              >
+                开始专注
+              </button>
+            )}
+
+            {phase === 'awaitingBreak' && (
+              <>
                 <button
-                  onClick={() => { interrupt(); setRound((r) => r + 1); }}
+                  onClick={() => startBreak()}
+                  className="flex-1 py-2 text-xs font-semibold rounded-lg transition-all duration-150"
+                  style={{ background: BREAK_ACCENT, color: '#fff', border: 'none' }}
+                >
+                  立即开始休息
+                </button>
+                <button
+                  onClick={() => skipBreak()}
                   className="px-3 py-2 text-xs rounded-lg transition-all duration-150"
-                  style={{ background: 'transparent', color: textMuted, border: `1px solid ${dark ? 'rgba(255,255,255,0.12)' : btnBorder}` }}
+                  style={{ background: btnBg, color: btnText, border: `1px solid ${btnBorder}` }}
                 >
                   跳过
                 </button>
               </>
-            ) : (
+            )}
+
+            {(phase === 'shortBreak' || phase === 'longBreak') && (
               <button
-                onClick={handleStart}
+                onClick={() => skipBreak()}
+                className="flex-1 py-2 text-xs font-medium rounded-lg transition-all duration-150"
+                style={{ background: btnBg, color: btnText, border: `1px solid ${btnBorder}` }}
+              >
+                跳过休息
+              </button>
+            )}
+
+            {phase === 'awaitingFocus' && (
+              <button
+                onClick={() => startNextFocus()}
                 className="flex-1 py-2 text-xs font-semibold rounded-lg transition-all duration-150"
                 style={{ background: 'var(--brand)', color: '#fff', border: 'none' }}
               >
