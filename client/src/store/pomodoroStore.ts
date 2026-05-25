@@ -48,6 +48,7 @@ function readSession(): Partial<PomodoroState> {
       return {
         pomId: s.pomId, taskId: s.taskId, taskTitle: s.taskTitle,
         durationSeconds: s.durationSeconds, secondsLeft,
+        startedAt: s.startedAt,
         status: 'running', phase: 'focus',
         cycleCount: s.cycleCount,
       };
@@ -67,6 +68,7 @@ function readSession(): Partial<PomodoroState> {
         taskId: s.taskId, taskTitle: s.taskTitle,
         phase: s.phase, status: 'running',
         secondsLeft, durationSeconds: s.breakDuration,
+        breakStartedAt: s.breakStartedAt,
         cycleCount: s.cycleCount,
       };
     }
@@ -92,6 +94,8 @@ interface PomodoroState {
   taskTitle: string;
   durationSeconds: number;
   secondsLeft: number;
+  startedAt: number | null;
+  breakStartedAt: number | null;
   status: TimerStatus;
   phase: Phase;
   cycleCount: number;
@@ -120,6 +124,8 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
   taskTitle: '',
   durationSeconds: 1500,
   secondsLeft: 1500,
+  startedAt: null,
+  breakStartedAt: null,
   status: 'idle',
   phase: 'focus',
   cycleCount: 0,
@@ -143,8 +149,8 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
       });
       set({
         pomId: pom.id, taskId, taskTitle, durationSeconds,
-        secondsLeft: durationSeconds, status: 'running',
-        phase: 'focus', error: null,
+        secondsLeft: durationSeconds, startedAt,
+        status: 'running', phase: 'focus', error: null,
       });
     } catch (e) {
       set({ error: String(e) });
@@ -165,6 +171,7 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
       status: 'idle', pomId: null,
       phase: 'awaitingBreak', breakCountdown: 5,
       cycleCount: newCycleCount,
+      startedAt: null,
     });
     try {
       await api.completePomodoro(pomId);
@@ -179,7 +186,8 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
     const { pomId } = get();
     if (!pomId) return;
     clearSession();
-    set({ status: 'idle', pomId: null, taskId: null, taskTitle: '', phase: 'focus' });
+    set({ status: 'idle', pomId: null, taskId: null, taskTitle: '', phase: 'focus',
+          startedAt: null, breakStartedAt: null });
     try {
       await api.interruptPomodoro(pomId);
     } catch (e) {
@@ -188,7 +196,17 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
   },
 
   tick: () => {
-    set((s) => ({ secondsLeft: Math.max(0, s.secondsLeft - 1) }));
+    const { phase, startedAt, durationSeconds, breakStartedAt } = get();
+    const now = Date.now();
+    if (phase === 'focus' && startedAt !== null) {
+      const elapsed = Math.floor((now - startedAt) / 1000);
+      set({ secondsLeft: Math.max(0, durationSeconds - elapsed) });
+    } else if ((phase === 'shortBreak' || phase === 'longBreak') && breakStartedAt !== null) {
+      const elapsed = Math.floor((now - breakStartedAt) / 1000);
+      set({ secondsLeft: Math.max(0, durationSeconds - elapsed) });
+    } else {
+      set((s) => ({ secondsLeft: Math.max(0, s.secondsLeft - 1) }));
+    }
   },
 
   tickBreakCountdown: () => {
@@ -210,6 +228,7 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
     set({
       phase: breakPhase, status: 'running',
       secondsLeft: breakDuration, durationSeconds: breakDuration,
+      breakStartedAt,
     });
   },
 
@@ -222,7 +241,8 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
       phase: 'awaitingFocus', cycleCount: newCycleCount,
       breakStartedAt: null, breakDuration: 0,
     });
-    set({ status: 'idle', phase: 'awaitingFocus', cycleCount: newCycleCount });
+    set({ status: 'idle', phase: 'awaitingFocus', cycleCount: newCycleCount,
+          breakStartedAt: null });
   },
 
   breakComplete: () => {
@@ -233,7 +253,8 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
       phase: 'awaitingFocus', cycleCount: newCycleCount,
       breakStartedAt: null, breakDuration: 0,
     });
-    set({ status: 'idle', phase: 'awaitingFocus', cycleCount: newCycleCount });
+    set({ status: 'idle', phase: 'awaitingFocus', cycleCount: newCycleCount,
+          breakStartedAt: null });
   },
 
   startNextFocus: async () => {
