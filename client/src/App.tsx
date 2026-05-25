@@ -31,6 +31,16 @@ function PomodoroTicker() {
     return () => clearInterval(id);
   }, [status, tick]);
 
+  // Snap to correct time immediately when tab regains visibility
+  useEffect(() => {
+    if (status !== 'running') return;
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') tick();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [status, tick]);
+
   // Auto-complete focus when timer hits 0
   useEffect(() => {
     if (status === 'running' && phase === 'focus' && secondsLeft <= 0) complete();
