@@ -70,6 +70,7 @@ export function BoardPage() {
     return acc;
   }, {} as Record<TaskStatus, Task[]>);
 
+  const activeProjects = projects.filter((p) => !p.archived);
   const projectMap = Object.fromEntries(projects.map((p) => [p.id, p]));
 
   function handleDragStart(event: DragStartEvent) {
@@ -212,7 +213,7 @@ export function BoardPage() {
                 >
                   全部
                 </button>
-                {projects.slice(0, 3).map((p) => (
+                {activeProjects.slice(0, 3).map((p) => (
                   <button
                     key={p.id}
                     onClick={() => setProjectFilter(p.id)}
@@ -248,7 +249,7 @@ export function BoardPage() {
                       key={status}
                       status={status}
                       tasks={columnTasks[status]}
-                      projects={projects}
+                      projects={activeProjects}
                       onTaskClick={(task) => setSelectedTask(task)}
                       onAddTask={(title, s) => addTask(title, s, projectFilter ?? undefined)}
                       onStartPomodoro={(task) => pomodoroStart(task.id, task.title)}
@@ -277,7 +278,7 @@ export function BoardPage() {
       {/* Task detail drawer */}
       <TaskDrawer
         task={selectedTask}
-        projects={projects}
+        projects={activeProjects}
         onClose={() => setSelectedTask(null)}
         onPatch={(id, data) => patchTask(id, data as Parameters<typeof patchTask>[1])}
         onDelete={removeTask}

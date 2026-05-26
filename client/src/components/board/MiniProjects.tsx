@@ -6,7 +6,7 @@ export function MiniProjects() {
   const navigate = useNavigate();
   const { projects, tasks } = useBoardStore();
 
-  const stats = projects.map((p) => {
+  const stats = projects.filter((p) => !p.archived).map((p) => {
     const pts  = tasks.filter((t) => t.projectId === p.id);
     const done = pts.filter((t) => t.status === 'done').length;
     return { ...p, total: pts.length, done };

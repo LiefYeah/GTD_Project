@@ -8,7 +8,7 @@ const router = Router();
 
 router.get('/', (_req, res, next) => {
   try {
-    const result = db.select().from(projects).where(eq(projects.archived, 0)).all();
+    const result = db.select().from(projects).all();
     res.json(result);
   } catch (e) { next(e); }
 });
