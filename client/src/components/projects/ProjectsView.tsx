@@ -34,13 +34,14 @@ interface ProjectsViewProps {
   onNewProject: () => void;
   onEditProject: (p: Project) => void;
   onDeleteProject: (id: string) => void;
+  onReactivateProject: (id: string) => void;
 }
 
 export function ProjectsView({
   projects, tasks, icons,
-  onOpenProject, onNewProject, onEditProject, onDeleteProject,
+  onOpenProject, onNewProject, onEditProject, onDeleteProject, onReactivateProject,
 }: ProjectsViewProps) {
-  const [filter, setFilter] = useState<'all' | 'active' | 'archived'>('all');
+  const [filter, setFilter] = useState<'all' | 'active' | 'archived'>('active');
   const [q, setQ] = useState('');
 
   const allStats = useMemo(
@@ -118,6 +119,7 @@ export function ProjectsView({
             onOpen={() => onOpenProject(p.id)}
             onEdit={() => onEditProject(p)}
             onDelete={() => { if (confirm(`确定归档项目"${p.name}"？`)) onDeleteProject(p.id); }}
+            onReactivate={() => onReactivateProject(p.id)}
           />
         ))}
         <button className="pv__new" onClick={onNewProject}>

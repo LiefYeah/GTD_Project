@@ -8,13 +8,14 @@ import { TaskRow } from './TaskRow';
 /* ── List view ── */
 interface ProjectDetailListProps {
   tasks: Task[];
+  isArchived: boolean;
   onAdd: (s: TaskStatus) => void;
   onEdit: (t: Task) => void;
   onDelete: (id: string) => void;
   onUpdate: (id: string, data: { status: TaskStatus }) => void;
 }
 
-function ProjectDetailList({ tasks, onAdd, onEdit, onDelete, onUpdate }: ProjectDetailListProps) {
+function ProjectDetailList({ tasks, isArchived, onAdd, onEdit, onDelete, onUpdate }: ProjectDetailListProps) {
   return (
     <div className="pd__list">
       {STATUS_DEFS.map(s => {
@@ -25,7 +26,7 @@ function ProjectDetailList({ tasks, onAdd, onEdit, onDelete, onUpdate }: Project
               <span className="pd-group__dot" />
               <span className="pd-group__name">{s.label}</span>
               <span className="pd-group__count">{items.length}</span>
-              <button className="pd-group__add" onClick={() => onAdd(s.key)}>＋ 添加</button>
+              {!isArchived && <button className="pd-group__add" onClick={() => onAdd(s.key)}>＋ 添加</button>}
             </div>
             {items.length === 0
               ? <div className="pd-group__empty">暂无任务</div>
@@ -51,11 +52,12 @@ function ProjectDetailList({ tasks, onAdd, onEdit, onDelete, onUpdate }: Project
 /* ── Kanban view ── */
 interface ProjectDetailKanbanProps {
   tasks: Task[];
+  isArchived: boolean;
   onAdd: (s: TaskStatus) => void;
   onEdit: (t: Task) => void;
 }
 
-function ProjectDetailKanban({ tasks, onAdd, onEdit }: ProjectDetailKanbanProps) {
+function ProjectDetailKanban({ tasks, isArchived, onAdd, onEdit }: ProjectDetailKanbanProps) {
   return (
     <div className="pd-kanban">
       {STATUS_DEFS.map(s => {
@@ -86,7 +88,7 @@ function ProjectDetailKanban({ tasks, onAdd, onEdit }: ProjectDetailKanbanProps)
                   </div>
                 );
               })}
-              <button className="pd-col__add" onClick={() => onAdd(s.key)}>＋ 添加</button>
+              {!isArchived && <button className="pd-col__add" onClick={() => onAdd(s.key)}>＋ 添加</button>}
             </div>
           </div>
         );
@@ -140,8 +142,14 @@ export function ProjectDetail({
           </div>
         </div>
         <div className="pd__head-r">
-          <button className="pj-btn" onClick={onEditProject}>编辑项目</button>
-          <button className="pj-btn pj-btn--solid" onClick={() => onAddTask('planned')}>＋ 添加任务</button>
+          {project.archived ? (
+            <span className="pd__archived-notice">已归档 · 只读</span>
+          ) : (
+            <>
+              <button className="pj-btn" onClick={onEditProject}>编辑项目</button>
+              <button className="pj-btn pj-btn--solid" onClick={() => onAddTask('planned')}>＋ 添加任务</button>
+            </>
+          )}
         </div>
       </header>
 
@@ -180,6 +188,7 @@ export function ProjectDetail({
       {tab === 'list' && (
         <ProjectDetailList
           tasks={projectTasks}
+          isArchived={Boolean(project.archived)}
           onAdd={onAddTask}
           onEdit={onEditTask}
           onDelete={onDeleteTask}
@@ -189,6 +198,7 @@ export function ProjectDetail({
       {tab === 'kanban' && (
         <ProjectDetailKanban
           tasks={projectTasks}
+          isArchived={Boolean(project.archived)}
           onAdd={onAddTask}
           onEdit={onEditTask}
         />

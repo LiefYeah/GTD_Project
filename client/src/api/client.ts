@@ -98,6 +98,9 @@ export const updateProject = (
 export const archiveProject = (id: string) =>
   req<{ success: boolean }>(`/projects/${id}`, { method: 'DELETE' });
 
+export const reactivateProject = (id: string) =>
+  req<import('../types').Project>(`/projects/${id}/reactivate`, { method: 'POST' });
+
 export const getAllPomodoros = () => req<Pomodoro[]>('/pomodoros');
 
 export const getTodayPomodoros = () => req<Pomodoro[]>('/pomodoros/today');

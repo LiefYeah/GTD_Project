@@ -9,13 +9,19 @@ interface ProjectCardProps {
   onOpen: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onReactivate?: () => void;
 }
 
-export function ProjectCard({ project, stats, icon, onOpen, onEdit, onDelete }: ProjectCardProps) {
-  const color = project.color ?? '#6366f1';
+export function ProjectCard({ project, stats, icon, onOpen, onEdit, onDelete, onReactivate }: ProjectCardProps) {
+  const isArchived = Boolean(project.archived);
+  const color = isArchived ? '#9ca3af' : (project.color ?? '#6366f1');
 
   return (
-    <div className="pc" style={{ '--accent': color } as CSSVars} onClick={onOpen}>
+    <div
+      className={`pc${isArchived ? ' pc--archived' : ''}`}
+      style={{ '--accent': color } as CSSVars}
+      onClick={onOpen}
+    >
       <div className="pc__bar" />
 
       <div className="pc__top">
@@ -23,10 +29,17 @@ export function ProjectCard({ project, stats, icon, onOpen, onEdit, onDelete }: 
         <div className="pc__head">
           <div className="pc__name">{project.name}</div>
           {project.description && <div className="pc__desc">{project.description}</div>}
+          {isArchived && <div className="pc__archived-badge">已归档</div>}
         </div>
         <div className="pc__actions" onClick={e => e.stopPropagation()}>
-          <button className="pj-icon-btn pj-icon-btn--sm" title="编辑" onClick={onEdit}>✎</button>
-          <button className="pj-icon-btn pj-icon-btn--sm" title="删除" onClick={onDelete}>⌫</button>
+          {isArchived ? (
+            <button className="pj-icon-btn pj-icon-btn--sm pj-icon-btn--reactivate" title="重启项目" onClick={onReactivate}>↺</button>
+          ) : (
+            <>
+              <button className="pj-icon-btn pj-icon-btn--sm" title="编辑" onClick={onEdit}>✎</button>
+              <button className="pj-icon-btn pj-icon-btn--sm" title="归档" onClick={onDelete}>⌫</button>
+            </>
+          )}
         </div>
       </div>
 

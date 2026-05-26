@@ -57,4 +57,17 @@ router.delete('/:id', (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Reactivate: clears archived flag
+router.post('/:id/reactivate', (req, res, next) => {
+  try {
+    const { id } = req.params;
+    db.update(projects).set({ archived: 0, updatedAt: Date.now() }).where(eq(projects.id, id)).run();
+    const project = db.select().from(projects).where(eq(projects.id, id)).get();
+    if (!project) {
+      return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Project not found' } });
+    }
+    res.json(project);
+  } catch (e) { next(e); }
+});
+
 export default router;

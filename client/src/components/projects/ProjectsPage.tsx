@@ -108,6 +108,15 @@ export function ProjectsPage() {
     }
   };
 
+  const handleReactivateProject = async (id: string) => {
+    try {
+      await api.reactivateProject(id);
+      await reloadBoard();
+    } catch (e) {
+      setError(String(e));
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {error && (
@@ -143,6 +152,7 @@ export function ProjectsPage() {
             onNewProject={() => setProjectEditing({ isNew: true })}
             onEditProject={p => setProjectEditing({ project: p })}
             onDeleteProject={handleDeleteProject}
+            onReactivateProject={handleReactivateProject}
           />
         )}
       </div>

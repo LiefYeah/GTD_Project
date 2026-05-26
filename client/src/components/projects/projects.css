@@ -330,6 +330,38 @@
 .pc__open span { transition: transform .15s; }
 .pc:hover .pc__open span { transform: translateX(2px); }
 
+/* Archived card state */
+.pc--archived {
+  opacity: 0.65;
+  filter: saturate(0.3);
+}
+.pc--archived:hover {
+  transform: none;
+  box-shadow: var(--shadow-sm);
+  border-color: var(--line);
+  filter: saturate(0.5);
+}
+.pc__archived-badge {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
+  color: var(--ink-mute);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+.pj-icon-btn--reactivate {
+  color: #22c55e;
+  font-size: 16px;
+}
+.pj-icon-btn--reactivate:hover {
+  color: #16a34a;
+  background: color-mix(in oklab, #22c55e 12%, transparent);
+}
+
 /* "New project" card */
 .pv__new {
   background: transparent;
@@ -401,7 +433,17 @@
 }
 .pd__name { margin: 4px 0 6px; font-size: 28px; font-weight: 600; letter-spacing: -0.02em; color: var(--ink); }
 .pd__desc { margin: 0; font-size: 14px; color: var(--ink-soft); max-width: 540px; line-height: 1.5; }
-.pd__head-r { display: flex; gap: 8px; position: relative; }
+.pd__head-r { display: flex; gap: 8px; position: relative; align-items: center; }
+.pd__archived-notice {
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--ink-mute);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 4px 10px;
+  letter-spacing: 0.04em;
+}
 .pd__stats {
   display: grid;
   grid-template-columns: repeat(4, auto) 1fr;
