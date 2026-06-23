@@ -1,4 +1,5 @@
 export type TaskStatus = 'planned' | 'in_progress' | 'on_hold' | 'done';
+export type RecurrenceType = 'daily' | 'weekdays' | 'non_workdays' | 'custom_days';
 
 export interface Project {
   id: string;
@@ -8,6 +9,28 @@ export interface Project {
   createdAt: number;
   updatedAt: number;
   archived: number;
+}
+
+export interface RecurringRule {
+  id: string;
+  title: string;
+  description: string | null;
+  projectId: string | null;
+  estimatedPomodoros: number | null;
+  recurrenceType: RecurrenceType;
+  recurrenceDays: string | null; // JSON '[1,3,5]'
+  startDate: string;             // ISO date '2026-06-23'
+  endDate: string | null;        // ISO date, null = no end
+  lastGeneratedDate: string;     // ISO date
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface PublicHoliday {
+  id: number;
+  date: string;
+  name: string;
+  year: number;
 }
 
 export interface Task {
@@ -27,6 +50,7 @@ export interface Task {
   createdAt: number;
   updatedAt: number;
   completedAt: number | null;
+  recurringRuleId: string | null;
 }
 
 export const COLUMN_IDS: TaskStatus[] = ['planned', 'in_progress', 'on_hold', 'done'];

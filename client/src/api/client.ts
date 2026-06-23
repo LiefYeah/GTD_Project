@@ -1,4 +1,4 @@
-import type { Task, Project, Pomodoro } from '../types';
+import type { Task, Project, Pomodoro, RecurringRule, PublicHoliday } from '../types';
 
 const BASE = '/api';
 
@@ -116,3 +116,67 @@ export const importData = (data: unknown) =>
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
+
+// ── Recurring Rules ────────────────────────────────────────────────────────
+
+export interface CreateRecurringRuleData {
+  title: string;
+  description?: string | null;
+  project_id?: string | null;
+  estimated_pomodoros?: number | null;
+  recurrence_type: string;
+  recurrence_days?: string | null;
+  start_date: string;
+  end_date?: string | null;
+  last_generated_date?: string; // pass today's ISO date when enabling on an existing task
+}
+
+export interface UpdateRecurringRuleData {
+  title?: string;
+  description?: string | null;
+  project_id?: string | null;
+  estimated_pomodoros?: number | null;
+  recurrence_type?: string;
+  recurrence_days?: string | null;
+  start_date?: string;
+  end_date?: string | null;
+}
+
+export const getRecurringRules = () => req<RecurringRule[]>('/recurring');
+
+export const createRecurringRule = (data: CreateRecurringRuleData) =>
+  req<RecurringRule>('/recurring', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+
+export const updateRecurringRule = (id: string, data: UpdateRecurringRuleData) =>
+  req<RecurringRule>(`/recurring/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+
+export const deleteRecurringRule = (id: string) =>
+  req<{ success: boolean }>(`/recurring/${id}`, { method: 'DELETE' });
+
+export const generateRecurringTasks = () =>
+  req<{ generated: number; skipped_stale: number; rules_processed: number }>(
+    '/recurring/generate', { method: 'POST' }
+  );
+
+// ── Holidays ───────────────────────────────────────────────────────────────
+
+export const getHolidays = (year: number) =>
+  req<PublicHoliday[]>(`/holidays?year=${year}`);
+
+export const createHoliday = (data: { date: string; name: string }) =>
+  req<PublicHoliday>('/holidays', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+
+export const deleteHoliday = (id: number) =>
+  req<{ success: boolean }>(`/holidays/${id}`, { method: 'DELETE' });
