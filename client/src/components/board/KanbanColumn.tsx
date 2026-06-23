@@ -25,9 +25,10 @@ interface Props {
   onTaskClick: (task: Task) => void;
   onAddTask: (title: string, status: TaskStatus) => void;
   onStartPomodoro: (task: Task) => void;
+  recurringRuleMap?: Record<string, { recurrenceType: string; recurrenceDays: string | null }>;
 }
 
-export function KanbanColumn({ status, tasks, projects, onTaskClick, onAddTask, onStartPomodoro }: Props) {
+export function KanbanColumn({ status, tasks, projects, onTaskClick, onAddTask, onStartPomodoro, recurringRuleMap }: Props) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
   const meta = COLUMN_META[status];
   const col = COL_CONFIG[status];
@@ -118,6 +119,7 @@ export function KanbanColumn({ status, tasks, projects, onTaskClick, onAddTask, 
               onClick={() => onTaskClick(task)}
               onStartPomodoro={() => onStartPomodoro(task)}
               accent={col.accent}
+              recurringRule={task.recurringRuleId && recurringRuleMap ? recurringRuleMap[task.recurringRuleId] ?? null : null}
             />
           ))}
         </div>

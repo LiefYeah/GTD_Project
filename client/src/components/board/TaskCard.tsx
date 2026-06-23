@@ -12,6 +12,7 @@ interface Props {
   isDragOverlay?: boolean;
   /** Column accent color (CSS color or var()) */
   accent?: string;
+  recurringRule?: { recurrenceType: string; recurrenceDays: string | null } | null;
 }
 
 /** Tomato pip track: filled dots for completed, empty for remaining */
@@ -58,6 +59,20 @@ function TomatoPips({ completed, estimated }: { completed: number; estimated: nu
   );
 }
 
+function recurrenceLabel(type: string, days: string | null): string {
+  switch (type) {
+    case 'daily': return '↻ 每天';
+    case 'weekdays': return '↻ 工作日';
+    case 'non_workdays': return '↻ 非工作日';
+    case 'custom_days': {
+      const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+      const selected = (JSON.parse(days ?? '[]') as number[]).map((d) => dayNames[d]);
+      return `↻ 每周${selected.join('')}`;
+    }
+    default: return '↻ 重复';
+  }
+}
+
 function DueChip({ dueDate }: { dueDate: number }) {
   const days = differenceInCalendarDays(dueDate, Date.now());
   const overdue = days < 0;
@@ -88,7 +103,7 @@ function DueChip({ dueDate }: { dueDate: number }) {
   );
 }
 
-export function TaskCard({ task, project, onClick, onStartPomodoro, isDragOverlay = false, accent }: Props) {
+export function TaskCard({ task, project, onClick, onStartPomodoro, isDragOverlay = false, accent, recurringRule }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
   });
@@ -185,8 +200,8 @@ export function TaskCard({ task, project, onClick, onStartPomodoro, isDragOverla
         {task.title}
       </div>
 
-      {/* Footer: tomato pips + quick-start button */}
-      {(task.completedPomodoros > 0 || task.estimatedPomodoros) && (
+      {/* Footer: tomato pips + recurrence badge + quick-start button */}
+      {(task.completedPomodoros > 0 || task.estimatedPomodoros || (recurringRule && !isDone)) && (
         <div
           className="flex items-center justify-between pt-2 mt-1"
           style={{ borderTop: '1px dashed var(--line)' }}
@@ -195,6 +210,18 @@ export function TaskCard({ task, project, onClick, onStartPomodoro, isDragOverla
             completed={task.completedPomodoros}
             estimated={task.estimatedPomodoros}
           />
+          {recurringRule && !isDone && (
+            <span
+              className="text-[10px] px-1.5 py-0.5 rounded-md"
+              style={{
+                background: 'color-mix(in oklab, var(--brand) 12%, transparent)',
+                color: 'var(--brand)',
+                fontFamily: 'var(--font-mono)',
+              }}
+            >
+              {recurrenceLabel(recurringRule.recurrenceType, recurringRule.recurrenceDays)}
+            </span>
+          )}
           {onStartPomodoro && (
             <button
               onPointerDown={(e) => e.stopPropagation()}

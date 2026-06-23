@@ -11,6 +11,7 @@ import {
 } from '@dnd-kit/core';
 import { useBoardStore } from '../../store/boardStore';
 import { usePomodoroStore } from '../../store/pomodoroStore';
+import { useRecurringStore } from '../../store/recurringStore';
 import { KanbanColumn } from './KanbanColumn';
 import { TaskCard } from './TaskCard';
 import { TaskDrawer } from './TaskDrawer';
@@ -41,6 +42,7 @@ export function BoardPage() {
   } = useBoardStore();
 
   const pomodoroStart = usePomodoroStore((s) => s.start);
+  const rules = useRecurringStore((s) => s.rules);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
 
   useEffect(() => { load(); }, [load]);
@@ -56,6 +58,10 @@ export function BoardPage() {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
   const todayTs = todayStart.getTime();
+
+  const recurringRuleMap = Object.fromEntries(
+    rules.map((r) => [r.id, { recurrenceType: r.recurrenceType, recurrenceDays: r.recurrenceDays }])
+  );
 
   const columnTasks = COLUMN_IDS.reduce<Record<TaskStatus, Task[]>>((acc, col) => {
     let colTasks = visibleTasks.filter((t) => t.status === col);
@@ -253,6 +259,7 @@ export function BoardPage() {
                       onTaskClick={(task) => setSelectedTask(task)}
                       onAddTask={(title, s) => addTask(title, s, projectFilter ?? undefined)}
                       onStartPomodoro={(task) => pomodoroStart(task.id, task.title)}
+                      recurringRuleMap={recurringRuleMap}
                     />
                   ))}
                 </div>
@@ -263,6 +270,7 @@ export function BoardPage() {
                       project={activeTask.projectId ? projectMap[activeTask.projectId] : undefined}
                       onClick={() => {}}
                       isDragOverlay
+                      recurringRule={activeTask.recurringRuleId ? recurringRuleMap[activeTask.recurringRuleId] ?? null : null}
                     />
                   )}
                 </DragOverlay>
