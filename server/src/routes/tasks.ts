@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { and, eq, asc, desc } from 'drizzle-orm';
+import { and, eq, asc, desc, ne } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import { db } from '../lib/db';
 import { tasks } from '../db/schema';
@@ -12,7 +12,7 @@ router.get('/', (req, res, next) => {
     // and() filters out undefined conditions, returning all rows when both are absent
     const where = and(
       project_id ? eq(tasks.projectId, project_id) : undefined,
-      status ? eq(tasks.status, status) : undefined,
+      status ? eq(tasks.status, status) : ne(tasks.status, 'skipped'),
     );
     const result = db.select().from(tasks).where(where).orderBy(asc(tasks.sortOrder)).all();
     res.json(result);
@@ -83,6 +83,7 @@ router.patch('/:id', (req, res, next) => {
     if (body.scheduled_end !== undefined) set.scheduledEnd = body.scheduled_end as number | null;
     if (body.all_day !== undefined) set.allDay = body.all_day as number;
     if (body.estimated_pomodoros !== undefined) set.estimatedPomodoros = body.estimated_pomodoros as number | null;
+    if (body.recurring_rule_id !== undefined) set.recurringRuleId = body.recurring_rule_id as string | null;
 
     db.update(tasks).set(set).where(eq(tasks.id, id)).run();
     const task = db.select().from(tasks).where(eq(tasks.id, id)).get();

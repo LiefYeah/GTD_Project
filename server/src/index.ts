@@ -7,6 +7,7 @@ import tasksRouter from './routes/tasks';
 import pomodorosRouter from './routes/pomodoros';
 import calendarRouter from './routes/calendar';
 import importRouter from './routes/import';
+import recurringRouter from './routes/recurring';
 
 const app = express();
 const PORT = Number(process.env.PORT ?? 3001);
@@ -23,6 +24,8 @@ app.use('/api/tasks', tasksRouter);
 app.use('/api/pomodoros', pomodorosRouter);
 app.use('/api/calendar', calendarRouter);
 app.use('/api/import', importRouter);
+app.use('/api/recurring', recurringRouter);
+// TODO: register holidaysRouter once server/src/routes/holidays.ts is created (Task 4)
 
 // Error handler MUST be last — 4-arg signature is what Express uses to identify error middleware
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
