@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useBoardStore } from '../../store/boardStore';
 import * as api from '../../api/client';
+import { HolidayManager } from './HolidayManager';
 
 const POMODORO_OPTIONS = [
   { label: '15 分钟', value: 900 },
@@ -408,6 +409,22 @@ export function SettingsPage() {
           >
             导入文件必须是由本应用导出的 JSON 格式，相同 ID 的记录会自动跳过。
           </p>
+        </section>
+
+        <section
+          className="rounded-2xl p-6"
+          style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}
+        >
+          <h2
+            className="text-base font-semibold mb-1"
+            style={{ color: 'var(--ink)' }}
+          >
+            节假日管理
+          </h2>
+          <p className="text-sm mb-4" style={{ color: 'var(--ink-mute)' }}>
+            用于"非工作日"重复任务的判断依据。已内置 2026 年中国法定节假日，每年需手动更新。
+          </p>
+          <HolidayManager />
         </section>
       </div>
     </div>
