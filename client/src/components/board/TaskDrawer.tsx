@@ -1,8 +1,10 @@
 import { X, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
-import type { Task, Project, TaskStatus } from '../../types';
+import type { Task, Project, TaskStatus, RecurringRule } from '../../types';
 import { COLUMN_META, COLUMN_IDS } from '../../types';
 import { cn } from '../../lib/utils';
+import { useRecurringStore } from '../../store/recurringStore';
+import { RecurrenceConfig } from './RecurrenceConfig';
 
 interface Props {
   task: Task | null;
@@ -24,6 +26,61 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 export function TaskDrawer({ task, projects, onClose, onPatch, onDelete }: Props) {
+  const { rules, createRule, patchRule, deleteRule } = useRecurringStore();
+  const rule: RecurringRule | null = task?.recurringRuleId
+    ? (rules.find((r) => r.id === task.recurringRuleId) ?? null)
+    : null;
+
+  function handleEnableRecurrence(config: {
+    recurrenceType: string;
+    recurrenceDays: string | null;
+    endDate: string | null;
+  }) {
+    if (!task) return;
+    const todayStr = new Date().toISOString().split('T')[0];
+    createRule({
+      title: task.title,
+      description: task.description,
+      project_id: task.projectId,
+      estimated_pomodoros: task.estimatedPomodoros,
+      recurrence_type: config.recurrenceType,
+      recurrence_days: config.recurrenceDays,
+      start_date: todayStr,
+      end_date: config.endDate,
+      last_generated_date: todayStr, // current task is today's instance
+    }).then((newRule) => {
+      onPatch(task.id, { recurring_rule_id: newRule.id });
+    });
+  }
+
+  function handleUpdateRule(update: {
+    recurrenceType?: string;
+    recurrenceDays?: string | null;
+    endDate?: string | null;
+  }) {
+    if (!rule) return;
+    // Convert camelCase RecurrenceConfig update to snake_case UpdateRecurringRuleData
+    const snakeCased: Parameters<typeof patchRule>[1] = {};
+    if ('recurrenceType' in update) snakeCased.recurrence_type = update.recurrenceType;
+    if ('recurrenceDays' in update) snakeCased.recurrence_days = update.recurrenceDays;
+    if ('endDate' in update) snakeCased.end_date = update.endDate;
+    patchRule(rule.id, snakeCased);
+  }
+
+  function handleDisableRecurrence() {
+    if (!rule) return;
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    patchRule(rule.id, { end_date: yesterday.toISOString().split('T')[0] });
+  }
+
+  function handleDeleteRule() {
+    if (!task) return;
+    if (rule) deleteRule(rule.id);
+    onDelete(task.id);
+    onClose();
+  }
+
   const isOpen = !!task;
 
   return (
@@ -45,7 +102,7 @@ export function TaskDrawer({ task, projects, onClose, onPatch, onDelete }: Props
               <span className="text-sm text-muted-foreground">任务详情</span>
               <div className="flex items-center gap-1">
                 <button
-                  onClick={() => { onDelete(task.id); onClose(); }}
+                  onClick={handleDeleteRule}
                   className="p-1.5 rounded hover:bg-destructive/10 hover:text-destructive transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -63,11 +120,12 @@ export function TaskDrawer({ task, projects, onClose, onPatch, onDelete }: Props
               <Field label="标题">
                 <input
                   key={task.id + '-title'}
-                  defaultValue={task.title}
+                  defaultValue={rule?.title ?? task.title}
                   onBlur={(e) => {
-                    if (e.target.value.trim() && e.target.value !== task.title) {
-                      onPatch(task.id, { title: e.target.value.trim() });
-                    }
+                    const val = e.target.value.trim();
+                    if (!val || val === (rule?.title ?? task.title)) return;
+                    if (rule) patchRule(rule.id, { title: val });
+                    else onPatch(task.id, { title: val });
                   }}
                   className="w-full text-base font-medium bg-transparent border-0 border-b border-border/50 pb-1 outline-none focus:border-primary/50 transition-colors"
                 />
@@ -76,13 +134,15 @@ export function TaskDrawer({ task, projects, onClose, onPatch, onDelete }: Props
               <Field label="描述">
                 <textarea
                   key={task.id + '-desc'}
-                  defaultValue={task.description ?? ''}
+                  defaultValue={rule?.description ?? task.description ?? ''}
                   placeholder="添加描述…"
                   rows={3}
                   onBlur={(e) => {
                     const val = e.target.value.trim() || null;
-                    if (val !== task.description) {
-                      onPatch(task.id, { description: val });
+                    const current = rule?.description ?? task.description;
+                    if (val !== current) {
+                      if (rule) patchRule(rule.id, { description: val });
+                      else onPatch(task.id, { description: val });
                     }
                   }}
                   className="w-full text-sm bg-muted/30 border border-border rounded-md px-2 py-1.5 outline-none resize-none focus:ring-1 focus:ring-primary/30"
@@ -105,8 +165,12 @@ export function TaskDrawer({ task, projects, onClose, onPatch, onDelete }: Props
 
               <Field label="项目">
                 <select
-                  value={task.projectId ?? ''}
-                  onChange={(e) => onPatch(task.id, { project_id: e.target.value || null })}
+                  value={rule?.projectId ?? task.projectId ?? ''}
+                  onChange={(e) => {
+                    const val = e.target.value || null;
+                    if (rule) patchRule(rule.id, { project_id: val });
+                    else onPatch(task.id, { project_id: val });
+                  }}
                   className="w-full text-sm bg-background border border-border rounded-md px-2 py-1.5 outline-none cursor-pointer"
                 >
                   <option value="">无项目</option>
@@ -170,15 +234,26 @@ export function TaskDrawer({ task, projects, onClose, onPatch, onDelete }: Props
                   type="number"
                   min="0"
                   key={task.id + '-pom'}
-                  defaultValue={task.estimatedPomodoros ?? ''}
+                  defaultValue={rule?.estimatedPomodoros ?? task.estimatedPomodoros ?? ''}
                   placeholder="—"
                   onBlur={(e) => {
                     const val = e.target.value ? Number(e.target.value) : null;
-                    if (val !== task.estimatedPomodoros) {
-                      onPatch(task.id, { estimated_pomodoros: val });
+                    const current = rule?.estimatedPomodoros ?? task.estimatedPomodoros;
+                    if (val !== current) {
+                      if (rule) patchRule(rule.id, { estimated_pomodoros: val });
+                      else onPatch(task.id, { estimated_pomodoros: val });
                     }
                   }}
                   className="w-24 text-sm bg-background border border-border rounded-md px-2 py-1.5 outline-none focus:ring-1 focus:ring-primary/30"
+                />
+              </Field>
+
+              <Field label="重复">
+                <RecurrenceConfig
+                  rule={rule}
+                  onEnable={handleEnableRecurrence}
+                  onUpdate={handleUpdateRule}
+                  onDisable={handleDisableRecurrence}
                 />
               </Field>
 
