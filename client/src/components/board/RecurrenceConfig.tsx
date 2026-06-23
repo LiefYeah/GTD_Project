@@ -56,7 +56,7 @@ export function RecurrenceConfig({ rule, onEnable, onUpdate, onDisable }: Recurr
       onDisable();
     } else if (rule && !isRuleActive(rule)) {
       // Re-enable a stopped rule
-      onUpdate({ end_date: null } as never);
+      onUpdate({ endDate: null });
     } else {
       // Enable for the first time
       onEnable({
