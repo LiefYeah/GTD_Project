@@ -148,18 +148,20 @@ router.post('/generate', (_req, res, next) => {
     for (const rule of rules) {
       const dow = today.getDay();
 
-      if (matchesRule(rule.recurrenceType, rule.recurrenceDays, dow, todayStr, holidays)) {
-        // Expire stale instances (planned/in_progress from before today)
-        const stale = db.update(tasks)
-          .set({ status: 'skipped', updatedAt: Date.now() })
-          .where(and(
-            eq(tasks.recurringRuleId, rule.id),
-            inArray(tasks.status, ['planned', 'in_progress']),
-            lt(tasks.dueDate, startOfTodayMs),
-          ))
-          .run();
-        skippedStale += stale.changes;
+      // Always expire stale instances regardless of whether today matches the rule
+      // (e.g. a weekdays rule should skip yesterday's planned task even on a weekend)
+      const stale = db.update(tasks)
+        .set({ status: 'skipped', updatedAt: Date.now() })
+        .where(and(
+          eq(tasks.recurringRuleId, rule.id),
+          inArray(tasks.status, ['planned', 'in_progress']),
+          lt(tasks.dueDate, startOfTodayMs),
+        ))
+        .run();
+      skippedStale += stale.changes;
 
+      // Only generate today's instance if today matches the rule
+      if (matchesRule(rule.recurrenceType, rule.recurrenceDays, dow, todayStr, holidays)) {
         // Create today's instance if not already present
         const existing = db.select({ id: tasks.id })
           .from(tasks)

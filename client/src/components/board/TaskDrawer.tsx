@@ -37,7 +37,8 @@ export function TaskDrawer({ task, projects, onClose, onPatch, onDelete }: Props
     endDate: string | null;
   }) {
     if (!task) return;
-    const todayStr = new Date().toISOString().split('T')[0];
+    const d = new Date();
+    const todayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     createRule({
       title: task.title,
       description: task.description,
@@ -74,9 +75,9 @@ export function TaskDrawer({ task, projects, onClose, onPatch, onDelete }: Props
     patchRule(rule.id, { end_date: yesterday.toISOString().split('T')[0] });
   }
 
-  function handleDeleteRule() {
+  async function handleDeleteRule() {
     if (!task) return;
-    if (rule) deleteRule(rule.id);
+    if (rule) await deleteRule(rule.id);
     onDelete(task.id);
     onClose();
   }

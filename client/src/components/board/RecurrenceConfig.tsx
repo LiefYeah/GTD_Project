@@ -11,7 +11,8 @@ const RECURRENCE_TYPES: { value: RecurrenceType; label: string }[] = [
 const DAY_LABELS = ['日', '一', '二', '三', '四', '五', '六'];
 
 function todayISO(): string {
-  return new Date().toISOString().split('T')[0];
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function isRuleActive(rule: RecurringRule): boolean {
@@ -58,6 +59,8 @@ export function RecurrenceConfig({ rule, onEnable, onUpdate, onDisable }: Recurr
       // Re-enable a stopped rule
       onUpdate({ endDate: null });
     } else {
+      // Don't enable custom_days with no days selected — it would create an inert rule
+      if (type === 'custom_days' && customDays.length === 0) return;
       // Enable for the first time
       onEnable({
         recurrenceType: type,
@@ -143,23 +146,30 @@ export function RecurrenceConfig({ rule, onEnable, onUpdate, onDisable }: Recurr
 
           {/* Custom day picker */}
           {type === 'custom_days' && (
-            <div className="flex gap-1.5 justify-between">
-              {DAY_LABELS.map((label, dow) => (
-                <button
-                  key={dow}
-                  type="button"
-                  onClick={() => toggleDay(dow)}
-                  className="w-8 h-8 rounded-full text-xs font-medium transition-colors duration-150 flex-shrink-0"
-                  style={
-                    customDays.includes(dow)
-                      ? { background: 'var(--brand)', color: '#fff' }
-                      : { background: 'var(--bg-2)', color: 'var(--ink-mute)', border: '1px solid var(--line)' }
-                  }
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            <>
+              <div className="flex gap-1.5 justify-between">
+                {DAY_LABELS.map((label, dow) => (
+                  <button
+                    key={dow}
+                    type="button"
+                    onClick={() => toggleDay(dow)}
+                    className="w-8 h-8 rounded-full text-xs font-medium transition-colors duration-150 flex-shrink-0"
+                    style={
+                      customDays.includes(dow)
+                        ? { background: 'var(--brand)', color: '#fff' }
+                        : { background: 'var(--bg-2)', color: 'var(--ink-mute)', border: '1px solid var(--line)' }
+                    }
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {customDays.length === 0 && (
+                <p className="text-xs" style={{ color: 'var(--ink-mute)' }}>
+                  请至少选择一天
+                </p>
+              )}
+            </>
           )}
 
           {/* End date */}

@@ -105,10 +105,14 @@ function ThemeSync() {
 /** Initializes recurring tasks generation on app startup */
 function RecurringInitializer() {
   const generateAndReload = useRecurringStore((s) => s.generateAndReload);
+  const loadRules = useRecurringStore((s) => s.load);
   const loadBoard = useBoardStore((s) => s.load);
 
   useEffect(() => {
-    generateAndReload(loadBoard);
+    generateAndReload(loadBoard).catch(() => {
+      // Fallback: load rules even if generation fails so TaskDrawer shows recurrence config
+      loadRules();
+    });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return null;
