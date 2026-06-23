@@ -68,5 +68,36 @@ export function runMigrations(): void {
     console.log('[db] M001: pomodoros.task_id is now nullable');
   }
 
+  // ── Migration M002: recurring_rules, public_holidays tables + tasks.recurring_rule_id ──
+  const taskCols = sqlite.prepare('PRAGMA table_info(tasks)').all() as ColInfo[];
+  const hasRecurringRuleId = taskCols.some((c) => c.name === 'recurring_rule_id');
+  if (!hasRecurringRuleId) {
+    sqlite.exec(`
+      CREATE TABLE IF NOT EXISTS recurring_rules (
+        id                   TEXT    PRIMARY KEY,
+        title                TEXT    NOT NULL,
+        description          TEXT,
+        project_id           TEXT    REFERENCES projects(id),
+        estimated_pomodoros  INTEGER,
+        recurrence_type      TEXT    NOT NULL,
+        recurrence_days      TEXT,
+        start_date           TEXT    NOT NULL,
+        end_date             TEXT,
+        last_generated_date  TEXT    NOT NULL,
+        created_at           INTEGER NOT NULL,
+        updated_at           INTEGER NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS public_holidays (
+        id    INTEGER PRIMARY KEY AUTOINCREMENT,
+        date  TEXT    NOT NULL,
+        name  TEXT    NOT NULL,
+        year  INTEGER NOT NULL
+      );
+    `);
+    sqlite.exec(`ALTER TABLE tasks ADD COLUMN recurring_rule_id TEXT REFERENCES recurring_rules(id);`);
+    console.log('[db] M002: recurring_rules + public_holidays created; tasks.recurring_rule_id added');
+  }
+
   console.log('[db] migrations OK');
 }
