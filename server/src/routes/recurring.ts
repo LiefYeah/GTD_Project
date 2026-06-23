@@ -8,8 +8,11 @@ const router = Router();
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-function toISODate(d: Date): string {
-  return d.toISOString().split('T')[0];
+function toLocalISODate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 function addDays(d: Date, n: number): Date {
@@ -62,7 +65,7 @@ router.post('/', (req, res, next) => {
     // Default lastGeneratedDate = day before startDate so generate creates today's instance.
     // Callers that already have an instance for today pass last_generated_date = today to skip.
     const lastGeneratedDate = body.last_generated_date
-      ?? toISODate(addDays(new Date(body.start_date + 'T00:00:00'), -1));
+      ?? toLocalISODate(addDays(new Date(body.start_date + 'T00:00:00'), -1));
 
     const now = Date.now();
     const [rule] = db.insert(recurringRules).values({
@@ -109,11 +112,13 @@ router.patch('/:id', (req, res, next) => {
 router.delete('/:id', (req, res, next) => {
   try {
     const { id } = req.params;
-    db.update(tasks)
-      .set({ status: 'skipped', updatedAt: Date.now() })
-      .where(and(eq(tasks.recurringRuleId, id), inArray(tasks.status, ['planned', 'in_progress'])))
-      .run();
-    db.delete(recurringRules).where(eq(recurringRules.id, id)).run();
+    sqlite.transaction(() => {
+      db.update(tasks)
+        .set({ status: 'skipped', updatedAt: Date.now() })
+        .where(and(eq(tasks.recurringRuleId, id), inArray(tasks.status, ['planned', 'in_progress'])))
+        .run();
+      db.delete(recurringRules).where(eq(recurringRules.id, id)).run();
+    })();
     res.json({ success: true });
   } catch (e) { next(e); }
 });
@@ -124,7 +129,7 @@ router.post('/generate', (_req, res, next) => {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayStr = toISODate(today);
+    const todayStr = toLocalISODate(today);
     const startOfTodayMs = today.getTime();
     const startOfTomorrowMs = startOfTodayMs + 86_400_000;
 
@@ -141,65 +146,57 @@ router.post('/generate', (_req, res, next) => {
     let skippedStale = 0;
 
     for (const rule of rules) {
-      const fromDate = addDays(new Date(rule.lastGeneratedDate + 'T00:00:00'), 1);
-      let cursor = new Date(fromDate);
+      const dow = today.getDay();
 
-      while (cursor <= today) {
-        const cursorStr = toISODate(cursor);
-        const dow = cursor.getDay();
+      if (matchesRule(rule.recurrenceType, rule.recurrenceDays, dow, todayStr, holidays)) {
+        // Expire stale instances (planned/in_progress from before today)
+        const stale = db.update(tasks)
+          .set({ status: 'skipped', updatedAt: Date.now() })
+          .where(and(
+            eq(tasks.recurringRuleId, rule.id),
+            inArray(tasks.status, ['planned', 'in_progress']),
+            lt(tasks.dueDate, startOfTodayMs),
+          ))
+          .run();
+        skippedStale += stale.changes;
 
-        if (matchesRule(rule.recurrenceType, rule.recurrenceDays, dow, cursorStr, holidays) && cursorStr === todayStr) {
-          // Expire stale instances (planned/in_progress from before today)
-          const stale = db.update(tasks)
-            .set({ status: 'skipped', updatedAt: Date.now() })
-            .where(and(
-              eq(tasks.recurringRuleId, rule.id),
-              inArray(tasks.status, ['planned', 'in_progress']),
-              lt(tasks.dueDate, startOfTodayMs),
-            ))
-            .run();
-          skippedStale += stale.changes;
+        // Create today's instance if not already present
+        const existing = db.select({ id: tasks.id })
+          .from(tasks)
+          .where(and(
+            eq(tasks.recurringRuleId, rule.id),
+            gte(tasks.dueDate, startOfTodayMs),
+            lt(tasks.dueDate, startOfTomorrowMs),
+          ))
+          .get();
 
-          // Create today's instance if not already present
-          const existing = db.select({ id: tasks.id })
+        if (!existing) {
+          const last = db.select({ s: tasks.sortOrder })
             .from(tasks)
-            .where(and(
-              eq(tasks.recurringRuleId, rule.id),
-              gte(tasks.dueDate, startOfTodayMs),
-              lt(tasks.dueDate, startOfTomorrowMs),
-            ))
+            .where(eq(tasks.status, 'planned'))
+            .orderBy(desc(tasks.sortOrder))
+            .limit(1)
             .get();
+          const sortOrder = last?.s != null ? last.s + 1 : 1;
 
-          if (!existing) {
-            const last = db.select({ s: tasks.sortOrder })
-              .from(tasks)
-              .where(eq(tasks.status, 'planned'))
-              .orderBy(desc(tasks.sortOrder))
-              .limit(1)
-              .get();
-            const sortOrder = last?.s != null ? last.s + 1 : 1;
-
-            db.insert(tasks).values({
-              id: randomUUID(),
-              title: rule.title,
-              description: rule.description,
-              projectId: rule.projectId,
-              estimatedPomodoros: rule.estimatedPomodoros,
-              status: 'planned',
-              priority: 0,
-              sortOrder,
-              dueDate: startOfTodayMs,
-              allDay: 0,
-              completedPomodoros: 0,
-              recurringRuleId: rule.id,
-              createdAt: Date.now(),
-              updatedAt: Date.now(),
-            }).run();
-            generated++;
-          }
+          db.insert(tasks).values({
+            id: randomUUID(),
+            title: rule.title,
+            description: rule.description,
+            projectId: rule.projectId,
+            estimatedPomodoros: rule.estimatedPomodoros,
+            status: 'planned',
+            priority: 0,
+            sortOrder,
+            dueDate: startOfTodayMs,
+            allDay: 0,
+            completedPomodoros: 0,
+            recurringRuleId: rule.id,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          }).run();
+          generated++;
         }
-
-        cursor = addDays(cursor, 1);
       }
 
       db.update(recurringRules)
