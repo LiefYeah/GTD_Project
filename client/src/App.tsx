@@ -11,6 +11,8 @@ import { usePomodoroStore } from './store/pomodoroStore';
 import type { Phase } from './store/pomodoroStore';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { playChime, requestNotificationPermission, sendNotification } from './lib/sound';
+import { useRecurringStore } from './store/recurringStore';
+import { useBoardStore } from './store/boardStore';
 
 /** Headless: drives tick + phase transitions + notifications for the pomodoro timer */
 function PomodoroTicker() {
@@ -100,12 +102,25 @@ function ThemeSync() {
   return null;
 }
 
+/** Initializes recurring tasks generation on app startup */
+function RecurringInitializer() {
+  const generateAndReload = useRecurringStore((s) => s.generateAndReload);
+  const loadBoard = useBoardStore((s) => s.load);
+
+  useEffect(() => {
+    generateAndReload(loadBoard);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return null;
+}
+
 export default function App() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <PomodoroTicker />
       <ThemeSync />
       <KeyboardShortcuts />
+      <RecurringInitializer />
       <div className="flex flex-col h-screen app-bg">
         <NavBar />
         <main className="flex-1 overflow-hidden">
